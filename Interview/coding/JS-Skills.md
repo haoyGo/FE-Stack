@@ -1,7 +1,5 @@
 # JS Coding Skills #
 
----
-
 ## 1. for 循环 ##
 
 ``` javascript

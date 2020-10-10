@@ -1,7 +1,5 @@
 # JS Interview Coding #
 
----
-
 ## instanceof ##
 
 ``` javascript
