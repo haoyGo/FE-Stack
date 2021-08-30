@@ -21,17 +21,8 @@
   ![二叉搜索树](imgs/二叉搜索树.png)
 
 ### 遍历方式
-#### 深度优先遍历
-顺序是针对根节点而言的。
-1. **前序遍历：** 根结点 -> 左子树 -> 右子树
-2. **中序遍历：** 左子树 -> 根结点 -> 右子树
-3. **后序遍历：** 左子树 -> 右子树 -> 根结点
-![深度优先遍历](imgs/深度优先遍历.jpg)
 
-#### 广度优先遍历
-* **层次遍历：**
-
-链式存储的二叉树节点定义
+#### 链式存储的二叉树节点定义
 ``` Javascript
 class TreeNode {
   constructor(val) {
@@ -41,3 +32,127 @@ class TreeNode {
   }
 }
 ```
+
+#### 深度优先遍历
+顺序是针对根节点而言的。
+1. **前序遍历：** 根结点 -> 左子树 -> 右子树
+   ``` Javascript
+   // 递归法
+   const getPreorder = (root, res = []) => {
+     if (!root) return
+
+     res.push(root.val)
+     getPreorder(root.left, res)
+     getPreorder(root.right, res)
+
+     return res
+   }
+
+   const preorderTraversal = (root) => {
+     if (!root) return []
+
+     return getPreorder(root)
+   }
+
+   // 迭代法
+   const preorderTraversal = (root) => {
+    const stack = []
+    const output = []
+    let top
+    while (root || stack.length) {
+      if (root) {
+          output.push(root.val)
+          stack.push(root)
+          root = root.left
+      } else {
+          top = stack.pop()
+          root = top.right
+      }
+    }
+    
+    return output
+   }
+   ```
+
+2. **中序遍历：** 左子树 -> 根结点 -> 右子树
+   ``` Javascript
+   // 递归法
+   const getInorder = (root, res = []) => {
+     if (!root) return
+
+     getInorder(root.left, res)
+     res.push(root.val)
+     getInorder(root.right, res)
+
+     return res
+   }
+
+   const inorderTraversal = (root) => {
+     if (!root) return []
+
+     return getInorder(root)
+   }
+
+   // 迭代法
+   const inorderTraversal = (root) => {    
+    const stack = []
+    const output = []
+    let top
+    while(root || stack.length) {
+      if (root) {
+          stack.push(root)
+          root = root.left
+      } else {
+          top = stack.pop() 
+          output.push(top.val)
+          root = top.right
+      }
+    }
+    
+    return output
+   }
+   ```
+
+3. **后序遍历：** 左子树 -> 右子树 -> 根结点
+   ``` Javascript
+   // 递归法
+   const getPostorder = (root, res = []) => {
+    if (!root) return
+
+    getPostorder(root.left, res)
+    getPostorder(root.right, res)
+    res.push(root.val)
+
+    return res
+   }
+
+   const postorderTraversal = (root) => {
+     if (!root) return []
+
+     return getPostorder(root)
+   }
+
+   // 迭代法
+   const postorderTraversal = (root) => {
+    const stack = []
+    const output = []
+    let top
+    while (root || stack.length) {
+      if (root) {
+          stack.push(root)
+          output.unshift(root.val)
+          root = root.right
+      } else {
+          top = stack.pop()
+          root = top.left
+      }
+    }
+    
+    
+    return output
+   }
+   ```
+![深度优先遍历](imgs/深度优先遍历.jpg)
+
+#### 广度优先遍历
+* **层次遍历：**
