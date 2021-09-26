@@ -128,3 +128,16 @@ fn.cache = {}
 ``` javascript
 [...Array(10).keys()] // [0,1,2,3,4,5,6,7,8,9]
 ```
+
+## 9. sort 方法应用 ##
+
+``` javascript
+// sort by the following order of importance:
+//  1. x - coordinate
+//  2. y - coordinate precedence given to higher value
+//  3. node val in ascending order
+
+// pseudocode
+nodeInfos: [[a1,b1,c1], [a2,b2,c2]]
+nodeInfos.sort((a, b) => a[0] - b[0] || b[1] - a[1] || a[2] - b[2]);
+```
