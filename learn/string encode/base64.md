@@ -39,8 +39,8 @@ export { btoa: _btoa }
   
    > 官方定义：The btoa() method creates a Base64-encoded ASCII strig from a [binary string](https://developer.mozilla.org/en-US/docs/Web/API/DOMString/Binary) (i.e., a String object in which each character in the string is treated as a byte of binary data).
   
-   关于 `binary string`：JS string 采用的是 UTF-16 编码方式存储的，意味着每个字符占两个字节的内存空间。可以表示 `2**16 - 1 = 65535` 种不同的字符。
-   而 `binary string` 每个 `data` 为一个字节，即最大为`2**8 - 1 = 255`。
+   关于 `binary string`：JS string 采用的是 UTF-16 编码方式存储的，意味着每个字符占两个字节的内存空间。可以表示 `2**16 = 65536 (0 ~ 65535)` 种不同的字符。
+   而 `binary string` 每个 `data` 为一个字节，即最大为`2**8 = 256 (0 ~ 255)`。
    `btoa` 方法处理 string 内部是转为 binary string 方式去处理的，或者说超过255的字符会报异常：
   
    ``` js
@@ -51,7 +51,7 @@ export { btoa: _btoa }
    ```
 
    针对以上情况，官方给了两个解决方法：
-   * 将整个字符串转义后再进行编码，注意需要转义成 UTF-8 格式。可以利用 [encodeURIComponent](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) 和 [decodeURIComponent](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/decodeURIComponent)
+   * 将整个字符串转义后再进行编码，注意需要将字符转义成 `Byte` 单元。可以利用 [encodeURIComponent](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) 和 [decodeURIComponent](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/decodeURIComponent)
 
    ``` js
     // 方法一
@@ -259,8 +259,32 @@ export { btoa: _btoa }
   ```
 
   [String.prototype.charCodeAt](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/charCodeAt) 方法返回字符的 `UTF-16 code` - `0x0000 - 0xFFFF`。
-  -- TODO 补充 String.prototype.codePointAt 以及 unicode 转义的关系 (例如 '\u626c' => '扬')
+  即它只会处理两个字节的字符，有些字符例如中文字符是4个字节，则会解析失败。
+  
+  ``` js
+  String.fromCharCode(65535).charCodeAt() // 65535
+  String.fromCharCode(65536).charCodeAt() // 0
+  String.fromCharCode(65537).charCodeAt() // 1
+  ```
+
+  [String.prototype.charCodeAt](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt) 方法可以处理这种越界的情况：
+  ``` js
+  String.fromCodePoint(65535).codePointAt() // 65535
+  String.fromCodePoint(65536).codePointAt() // 65536
+  String.fromCodePoint(65537).codePointAt() // 65537
+  ```
+  
+  ### Unicode 表示方式
   ![unicode-string](./imgs/unicode-string.png)
+
+  平常写的字符串可以通过 `Unicode` 转义:
+  ``` js
+  '\u626c' // '扬'
+  
+  "😍".codePointAt().toString(16) // "1f60d"
+  "\u{1f60d}" // "😍"
+  ```
+
 
   > 扩展阅读：
   知乎文章 - [Base64 原理](https://zhuanlan.zhihu.com/p/111700349)
