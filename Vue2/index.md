@@ -17,7 +17,32 @@ MVVM表示的是 Model-View-ViewModel
 ### 响应式原理
 在 Vue 中，数据模型下的所有属性，会被 Vue 使用 `Object.defineProperty` （Vue3.0 使用 Proxy）进行数据劫持代理。响应式的核心机制是观察者模式，数据是被观察的一方，一旦发生变化，通知所有观察者，这样观察者可以做出响应，比如当观察者为视图时，视图可以做出视图的更新。
 Vue.js 的响应式系统以来三个重要的概念，Observer、Dep、Watcher。
+详见 [Vue2 响应式原理](./Vue2%20响应式原理.md)
 
+#### 发布者-Observer
+Observe 扮演的角色是发布者，他的主要作用是在组件vm初始化的时，调用defineReactive函数，使用Object.defineProperty方法对对象的每一个子属性进行数据劫持/监听，即为每个属性添加getter和setter，将对应的属性值变成响应式。
+在组件初始化时，调用initState函数，内部执行initState、initProps、initComputed方法，分别对data、prop、computed进行初始化，让其变成响应式。
+初始化props时，对所有props进行遍历，调用defineReactive函数，将每个 prop 属性值变成响应式，然后将其挂载到_props中，然后通过代理，把vm.xxx代理到vm._props.xxx中。
+同理，初始化data时，与prop相同，对所有data进行遍历，调用defineReactive函数，将每个 data 属性值变成响应式，然后将其挂载到_data中，然后通过代理，把vm.xxx代理到vm._data.xxx中。
+初始化computed，首先创建一个观察者对象computed-watcher，然后遍历computed的每一个属性，对每一个属性值调用defineComputed方法，使用Object.defineProperty将其变成响应式的同时，将其代理到组件实例上，即可通过vm.xxx访问到xxx计算属性。
+
+#### 调度中心/订阅器-Dep
+Dep 扮演的角色是调度中心/订阅器，在调用defineReactive将属性值变成响应式的过程中，也为每个属性值实例化了一个Dep，主要作用是对观察者（Watcher）进行管理，收集观察者和通知观察者目标更新，即当属性值数据发生改变时，会遍历观察者列表（dep.subs），通知所有的 watcher，让订阅者执行自己的update逻辑。
+其dep的任务是，在属性的getter方法中，调用dep.depend()方法，将观察者（即 Watcher，可能是组件的render function，可能是 computed，也可能是属性监听 watch）保存在内部，完成其依赖收集。在属性的setter方法中，调用dep.notify()方法，通知所有观察者执行更新，完成派发更新。
+
+#### 观察者-Watcher
+Watcher 扮演的角色是订阅者/观察者，他的主要作用是为观察属性提供回调函数以及收集依赖，当被观察的值发生变化时，会接收到来自调度中心Dep的通知，从而触发回调函数。
+而Watcher又分为三类，normal-watcher、 computed-watcher、 render-watcher。
+
+normal-watcher：在组件钩子函数watch中定义，即监听的属性改变了，都会触发定义好的回调函数。
+
+computed-watcher：在组件钩子函数computed中定义的，每一个computed属性，最后都会生成一个对应的Watcher对象，但是这类Watcher有个特点：当计算属性依赖于其他数据时，属性并不会立即重新计算，只有之后其他地方需要读取属性的时候，它才会真正计算，即具备lazy（懒计算）特性。
+
+render-watcher：每一个组件都会有一个render-watcher, 当data/computed中的属性改变的时候，会调用该Watcher来更新组件的视图。
+
+这三种Watcher也有固定的执行顺序，分别是：computed-render -> normal-watcher -> render-watcher。这样就能尽可能的保证，在更新组件视图的时候，computed 属性已经是最新值了，如果 render-watcher 排在 computed-render 前面，就会导致页面更新的时候 computed 值为旧数据。
+
+![响应式原理](./imgs/响应式原理.jpg)
 
 
 ## 二、组件化
@@ -32,7 +57,7 @@ Vue.js 的响应式系统以来三个重要的概念，Observer、Dep、Watcher�
 原理：当自组件 `vm` 实例化时，获取到父组件传入的 slot 内容，存放到 `vm.$slots` 和 `vm.$scopedSlots`。当组件进行渲染时，遇到 `<slot>` 标签，进行替换。
 
 ### 模版编译
-将 `<template>` 转换为渲染函数，详见 [Vue 模版编译](./Vue%20模版编译.md)
+将 `<template>` 转换为渲染函数，详见 [Vue2 模版编译](./Vue%20模版编译.md)
 
 ### 预编译
 对于 Vue 组件来说，模版编译只会在组件实例化时候编译一次，生成 `render` 后不会再编译。编译对组件的 `runtime` 是一种性能损耗。所以模版编译的过程可以在构建时候完成。

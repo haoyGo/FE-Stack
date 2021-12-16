@@ -8,7 +8,7 @@ const NodeTypeEnum = {
   tag: 1,
   text: 3,
   comment: 8,
-  root: 9
+  fragment: 11
 }
 
 // 订阅器
@@ -114,8 +114,8 @@ const nodeCompilerMap = {
     // console.log('comment compiler');
 
   },
-  [NodeTypeEnum.root]: (node, vm) => {
-    // console.log('root compiler');
+  [NodeTypeEnum.fragment]: (node, vm) => {
+    // console.log('fragment compiler');
 
   },
 }
