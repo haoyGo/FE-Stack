@@ -6,6 +6,7 @@
 * HTTP
   * [HTTP](./HTTP/HTTP.md)
   * [TCP](./HTTP/TCP.md)
+  * grpc
 * 浏览器
   * [缓存](./浏览器/缓存/浏览器缓存.md)
   * [DNS缓存](./浏览器/缓存/DNS缓存.md)
@@ -37,6 +38,7 @@
   * tree-shaking
 * [web 安全](./Web安全/index.md)
 * 性能优化
+  * sql 查询优化：字段索引，分区分表，读写分离
 * 垃圾回收
 * 部署
   * docker vs virtual machine
@@ -44,7 +46,7 @@
   * sentry
   * Prometheus
 * [JS 设计模式](./JS-patterns/设计模式.md)
-* Nodejs
+* [Nodejs](./../NodeJs/index.md)
   * 多线程、多进程原理；通信
   * koa
   * express

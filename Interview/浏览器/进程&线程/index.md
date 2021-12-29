@@ -39,8 +39,39 @@
   * SharedWorker 向主代码通信：`port.postMessage` 和 `SharedWorker.port.onmessage`
 
 ### 进程间通信
-* `管道通信`：就是操作系统在内核中开辟一段缓冲区，进程1可以将需要交互的数据拷贝到这个缓冲区里，进程2就可以读取了
-* `消息队列通信`：
-* `共享内存通信`：就是映射一段能被其他进程访问的内存，由一个进程创建，但多个进程都可以访问，共享进程最快的是 `IPC` 方式
-* `信号量通信`：比如信号量初始值是1，进程1来访问一块内存的时候，就把信号量设为0，然后进程2也来访问的时候看到信号量为0，就知道有其他进程在访问了，就不访问了
+* `管道pipe`：就是操作系统在内核中开辟一段缓冲区，进程1可以将需要交互的数据拷贝到这个缓冲区里，进程2就可以读取了
+* `消息队列`：
+* `共享内存`：就是映射一段能被其他进程访问的内存，由一个进程创建，但多个进程都可以访问，共享进程最快的是 `IPC` 方式
+* `信号量`：比如信号量初始值是1，进程1来访问一块内存的时候，就把信号量设为0，然后进程2也来访问的时候看到信号量为0，就知道有其他进程在访问了，就不访问了
 * `socket`：其他的都是同一台主机之间的进程通信，而在不同主机的进程通信就要用到socket的通信方式了，比如发起http请求，服务器返回数据
+
+
+### Event Loop
+JS异步依赖于 `事件触发线程` 管理的 `事件队列`，每个异步调用结束会往 `事件队列` 添加一个回调函数，等到 JS 引擎空闲会逐个执行，这个检查时轮训着的，所以也叫 `事件循环`。
+每个线程都有自己的事件循环，每个 web worker 也是，保证了能够独立执行。同源的标签共享一个事件循环，所以能够同步通信。
+![event-loop](./imgs/event-loop.jpg)
+
+* macrotask
+  * setTimeout / setInterval
+  * setImmediate
+  * MessageChannel
+  * postMessage
+* microtask
+  * Promise
+  * MutationObserver：监听dom变化
+  * process.nextTick(NodeJS)
+  
+* 宏任务的回调会添加到 `事件队列`，每次执行完一个回调，浏览器会重新渲染。
+* 宏任务中碰到微任务，会在执行完这个宏任务后执行所有微任务，然后重新渲染，继续执行下一个宏任务。
+  ``` js
+  for (macroTask of macroTaskQueue) {
+    // 1. Handle current MACRO-TASK
+    handleMacroTask();
+
+    // 2. Handle all MICRO-TASK
+    for (microTask of microTaskQueue) {
+        handleMicroTask(microTask);
+    }
+  }
+  ```
+  ![tasks](./imgs/tasks.jpg)
