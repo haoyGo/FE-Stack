@@ -33,7 +33,7 @@
 9.  [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
     * 三种 status：`pending`、`fulfilled`、`rejected`
     * `new Promise(executor)`
-      * executor: (resolve, reject) => void
+      * executor: (resolve, reject) => unknow
       executor 函数内返回值被 ignore，throw 异常会被 reject 处理
     * `Promise.all`
       * 并行执行所有异步任务，全部完成后返回数组
