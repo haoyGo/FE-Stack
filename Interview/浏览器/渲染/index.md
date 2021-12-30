@@ -8,14 +8,17 @@
 
 渲染完毕后会触发load事件。
 DOMContentLoaded 事件触发时，仅当DOM加载完成，不包括样式表，图片，脚本。
+---
 
 ### css加载
 * css 由单独的下载线程异步下载
 * `css加载` 不会阻塞 DOM 树构建
 * `css加载` 会阻塞render构建
+---
 
 ### 图层
 图层之间不会影响回流重绘，通过 `硬件加速` 可以开辟新图层。常用方式(css)：
 * `transform: translate3d; transform: translateZ`
 * `opacity`
 * `will-change: transform;`
+---

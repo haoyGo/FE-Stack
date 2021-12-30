@@ -36,6 +36,7 @@ for (const item of myIterable) {
 
 [...myIterable] // [1, 2, 3]
 ```
+---
 
 ## Symbol.toStringTag
 对象调用 `Object.prototype.toString` 方法会读取这个内置属性。
@@ -85,6 +86,7 @@ class ValidatorClass {
 }
 toTypeString(new ValidatorClass()) // '[object Validator]'
 ```
+---
 
 ## Symbol.hasInstance
 `Symbol.hasInstance` 用于判断某对象是否为某构造器的实例。因此你可以用它自定义 `instanceof` 操作符在某个类上的行为。
@@ -110,6 +112,7 @@ class Even {
 1 instanceof Even // false
 2 instanceof Even // true
 ```
+---
 
 ## Symbol.toPrimitive
 `Symbol.toPrimitive` 是一个内置的 Symbol 值，它是作为对象的函数值属性存在的，当一个对象转换为对应的原始值时，会调用此函数。

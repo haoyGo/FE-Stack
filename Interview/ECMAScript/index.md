@@ -46,10 +46,12 @@
       * 返会第一个 resolved 的值，可以是 rejected 或 fulfilled
     * `Promise.then(onFulfilled, onRejected)`
 10. `let & const`
+---
 
 ### ES7(2016)
 1. `Array.prototype.includes`
 2. 指数运算符 `**`
+---
 
 ### ES8(2017)
 1. `async/await`
@@ -59,6 +61,7 @@
    主要作用是方便使用 `git` 进行多人协作开发时修改同一个函数减少不必要的行变更。
 5. `Object.getOwnPropertyDescriptors`
 6. `ShareArrayBuffer` 和 `Atomics` 对象，用于从共享内存位置读取和写入
+---
 
 ### ES9(2018)
 1. 异步迭代
@@ -84,6 +87,7 @@
     usDate = d.replace(reDate, '$<month>-$<day>-$<year>');
    ```
 4. 正则断言
+---
 
 ### ES10(2019)
 1. 更加友好的 `JSON.stringify`
@@ -104,6 +108,7 @@
    try {} catch {}
    ```
 9. `BigInt`
+---
 
 ### ES2020
 1. `Optional Chaining`

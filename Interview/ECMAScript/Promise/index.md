@@ -35,6 +35,8 @@ let p = new Promise(resolve => {
 
 也即 `new Promise` 时，执行构造函数传给 `Promise` 的函数，设置定时器模拟异步的场景，接着调用 `promise.then` 方法注册异步操作完成后的 `onFulfilled`，最后当异步操作完成时，调用 `resolve(value)`， 执行 `then` 方法注册的 `onFulfilled`。
 
+---
+
 #### promise chain
 只需要 `then/catch` 返回 `this`
 ``` js
@@ -43,6 +45,7 @@ then(onFulfilled) {
   return this // 看这里
 }
 ```
+---
 
 #### 加入延迟机制
 上面代码的执行顺序，依赖于构造函数内有异步操作，如果是同步的，会导致构造函数所有代码先执行完，再去执行 `then` 方法。因此要加入一些处理，保证在 `resolve` 执行之前，`then` 方法已经注册完所有的回调：
@@ -71,6 +74,7 @@ setTimeout(() => {
   })
 });
 ```
+---
 
 #### 加入状态机
 为了解决上一节抛出的问题，我们必须加入状态机制，也就是大家熟知的 `pending`、`fulfilled`、`rejected`。
@@ -105,6 +109,8 @@ class Promise {
 至此，一个初具功能的 `Promise` 就实现好了，它实现了 `then`，实现了链式调用，实现了状态管理等等。但仔细想想，链式调用的实现只是在 `then` 中 `return` 了 `this`，因为是同一个实例，调用再多次 `then` 也只能返回相同的一个结果，这显然是不能满足我们的要求的。
 
 每个 `then` 注册的 `onFulfilled` 都返回了不同的结果，层层递进，很明显在 `then`方法中 `return this` 不能达到这个效果。引入真正的链式调用，`then` 返回的一定是一个新的 `Promise` 实例。
+
+---
 
 #### 较为完整实现
 ``` js
@@ -155,6 +161,8 @@ class Promise {
 * 为了将前后 `Promise` 串联起来，`后面 Promise` 需要拿到 `前面 Promise` 的返回值 `value` (通过回调函数 `onFulfilled` 调用返回)。这个通过 `resolve` 函数来串联，所以每个 `callback` 除了注册的回调函数 `onFulfilled`，还需要保存该实例的 `resolve` 函数（通过构造函数而来），用于传递 `value`。
 * 这样每个 `then` 方法后都会返回新的 `Promise` 实例，也会有自己的 `state、value、callbacks`，`后面 Promise` 传参就是`前面 Promise`，`前面 Promise callbacks` 会存放`后面 Promise`
 
+---
+
 #### then 返回 promise
 如果 `onFulfilled` 返回的是 Promise，需要把 `前 promise` 的状态变更延迟，直到`返回 promise` 里的异步操作执行完成，不然下一个 `then` 拿到的参数就是 `promise 对象`。通过调用 `返回 promise 的 then` 方法，保证异步操作执行完成，然后去改 `前 promise` 的状态，即通过 `前 promise 的 resolve`。
 ``` js
@@ -173,6 +181,8 @@ _resolve(value) {
 }
 ```
 从代码上看，它是对 `resolve` 中的值作了一个特殊的判断，判断 `resolve` 的值是否为 `Promise` 实例，如果是 `Promise` 实例，那么就把当前 `Promise` 实例的状态改变接口重新注册到 `resolve` 的值对应的 `Promise` 的 `onFulfilled` 中，也就是说当前 `Promise` 实例的状态要依赖 `resolve` 的值的 `Promise` 实例的状态。
+
+---
 
 #### 补充 reject
 ``` js
@@ -232,6 +242,7 @@ class Promise {
   }
 }
 ```
+---
 
 #### 异常处理
 如果在执行 `onFulfilled` 或者 `onRejected` 时，出现了异常，需要进行异常处理。
@@ -263,6 +274,7 @@ _handle(callback) {
   }
 }
 ```
+---
 
 #### catch 方法
 `catch` 其实就是 `then` 中的 `onRejected`
@@ -271,6 +283,7 @@ catch(onError){
   return this.then(null, onError);
 }
 ```
+---
 
 #### finally 方法
 `finally` 其实就是 `then` 中的 `onFulfilled`、`onRejected`都一致处理
@@ -290,6 +303,7 @@ finally(onDone) {
   );
 }
 ```
+---
 
 #### Promise.resolve/reject
 如果 `Promise.resolve` 的参数是一个 `Promise 实例`，那么 `Promise.resolve` 将不做任何改动，直接返回这个 `Promise 实例`，如果是一个基本数据类型，譬如上例中的字符串，`Promise.resolve` 就会新建一个 `Promise 实例` 返回。这样当我们不清楚拿到的对象到底是不是 `Promise 实例` 时，为了保证统一的行为，`Promise.resolve` 就变得很有用了。
@@ -327,6 +341,8 @@ static reject(value) {
 ```
 `Promise.reject` 与 `Promise.resolve` 类似，区别在于 `Promise.reject` 始终返回一个状态的 `rejected` 的 `Promise` 实例，而 `Promise.resolve` 的参数如果是一个 `Promise` 实例的话，返回的是参数对应的 `Promise` 实例，所以状态不一 定。
 
+---
+
 #### Promise.all
 计数完成所有异步调用，然后 `resolve` 返回所有结果
 ``` js
@@ -346,6 +362,7 @@ static all(promises) {
   })
 }
 ```
+---
 
 #### Promise.race
 所有异步调用都注册 `resolve`，只要有一个完成，就直接 `resolve`，但不会停止其他调用继续执行。
@@ -358,6 +375,7 @@ static race(promises) {
   })
 }
 ```
+---
 
 刚开始看 `Promise` 源码的时候总不能很好的理解 `then` 和 `resolve` 函数的运行机理，但是如果你静下心来，反过来根据执行 `Promise` 时的逻辑来推演，就不难理解了。这里一定要注意的点是：**`Promise` 里面的 `then` 函数仅仅是注册了后续需要执行的代码，真正的执行是在 `resolve` 方法里面执行的**，理清了这层，再来分析源码会省力的多。
 

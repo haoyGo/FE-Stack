@@ -6,6 +6,8 @@
 
 在 `单核CPU` 系统之上我们采用 `单进程 + 单线程` 的模式来开发。在 `多核CPU` 系统之上，可以通过 `child_process.fork` 开启多个进程（Node.js 在 v0.8 版本之后新增了 `Cluster` 来实现多进程架构） ，即 `多进程 + 单线程` 模式。注意：开启多进程不是为了解决高并发，主要是解决了单进程模式下 `Node.js CPU` 利用率不足的情况，充分利用 `多核CPU` 的性能。
 
+---
+
 ### Process
 * `process.env`：环境变量，例如通过 `process.env.NODE_ENV` 获取不同环境项目配置信息
 * `process.nextTick`：这个在谈及 `Event Loop` 时经常为会提到
