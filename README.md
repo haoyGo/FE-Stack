@@ -1,17 +1,20 @@
 # FE - Stack
-* [ECMAScript](./interview/ECMAScript/index.md)
-  * [Promise](./interview/ECMAScript/Promise/index.md)
-  * [Symbol](./interview/ECMAScript/Symbol/Symbol.md)
-  * [Symbol内置属性](./interview/ECMAScript/Symbol/内置Symbol属性.md)
-* [手写题](./interview/coding.md)
+* [ECMAScript](./ECMAScript/index.md)
+  * [Promise](./ECMAScript/Promise/index.md)
+  * [Symbol](./ECMAScript/Symbol/Symbol.md)
+  * [Symbol内置属性](./ECMAScript/Symbol/内置Symbol属性.md)
+* [JS原理](./JS原理/index.md)
+* [手写题](./coding.md)
 * HTTP
-  * [HTTP](./interview/HTTP/HTTP.md)
-  * [TCP](./interview/HTTP/TCP.md)
+  * [HTTP](./HTTP/HTTP.md)
+  * [TCP](./HTTP/TCP.md)
   * grpc
+* [进程&线程](./进程&线程/index.md)
 * 浏览器
-  * [缓存](./interview/浏览器/缓存/浏览器缓存.md)
-  * [DNS缓存](./interview/浏览器/缓存/DNS缓存.md)
-  * [CDN缓存](./interview/浏览器/缓存/CDN缓存.md)
+  * [渲染](./浏览器/渲染/index.md)
+  * [缓存](./浏览器/缓存/浏览器缓存.md)
+  * [DNS缓存](./浏览器/缓存/DNS缓存.md)
+  * [CDN缓存](./浏览器/缓存/CDN缓存.md)
 * [Vue2](./Vue2/index.md)
   * [实例化](./Vue2/实例化.md)
   * [响应式原理](./Vue2/响应式原理.md)
@@ -20,7 +23,8 @@
   * [nextTick](./Vue2/nextTick.md)
   * 事件监听器
   * 静态标记
-* vue3
+* Vue3
+  * [Vue2 vs Vue3](./Vue3/Vue3%20vs%20Vue2.md)
 * react
   * react-hooks
 * [SPA](./SPA/index.md)
@@ -28,6 +32,7 @@
   * [react-router](./SPA/react-router.md)
 * 算法
   * [Array](./算法/Array/index.md)
+  * [List](./算法/List/index.md)
   * [Tree](./算法/Tree/index.md)
   * [Leetcode](./算法/Leetcode/index.md)
   * [KMP](./算法/KMP/index.md)
@@ -37,7 +42,7 @@
   * rollup
   * vite
   * tree-shaking
-* [web 安全](./interview/Web安全/index.md)
+* [web 安全](./Web安全/index.md)
 * 性能优化
   * sql 查询优化：字段索引，分区分表，读写分离
 * 垃圾回收
@@ -46,7 +51,7 @@
 * 前端监控
   * sentry
   * Prometheus
-* [JS 设计模式](./interview/JS-patterns/设计模式.md)
+* [JS 设计模式](./JS-patterns/设计模式.md)
 * [Nodejs](./NodeJs/index.md)
   * 多线程、多进程原理；通信
   * koa
@@ -55,3 +60,9 @@
   * typeorm
   * mysql
   * es
+* 源码阅读
+  * vue2-shared
+  * emitter
+  * koa
+  * js-base64
+  * configStore

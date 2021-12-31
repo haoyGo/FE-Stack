@@ -377,9 +377,142 @@ static race(promises) {
 ```
 ---
 
-刚开始看 `Promise` 源码的时候总不能很好的理解 `then` 和 `resolve` 函数的运行机理，但是如果你静下心来，反过来根据执行 `Promise` 时的逻辑来推演，就不难理解了。这里一定要注意的点是：**`Promise` 里面的 `then` 函数仅仅是注册了后续需要执行的代码，真正的执行是在 `resolve` 方法里面执行的**，理清了这层，再来分析源码会省力的多。
+#### Deferred vs Promise
+``` js
+function Deferred() {
+    this.promise = new Promise(function (resolve, reject) {
+        this._resolve = resolve;
+        this._reject = reject;
+    }.bind(this));
+}
+Deferred.prototype.resolve = function (value) {
+    this._resolve.call(this.promise, value);
+};
+Deferred.prototype.reject = function (reason) {
+    this._reject.call(this.promise, reason);
+};
+```
+
+可以当作是 `Promise` 的操作方法分离，使用 `Deferred` 的方式：
+
+``` js
+// Promise
+function getURL(URL) {
+    return new Promise(function (resolve, reject) {
+        var req = new XMLHttpRequest();
+        req.open('GET', URL, true);
+        req.onload = function () {
+            if (req.status === 200) {
+                resolve(req.responseText);
+            } else {
+                reject(new Error(req.statusText));
+            }
+        };
+        req.onerror = function () {
+            reject(new Error(req.statusText));
+        };
+        req.send();
+    });
+}
+// 运行示例
+var URL = "http://httpbin.org/get";
+getURL(URL).then(function onFulfilled(value){
+    console.log(value);
+}).catch(console.error.bind(console));
+
+// Deferred
+function getURL(URL) {
+    var deferred = new Deferred(); // (1)
+    var req = new XMLHttpRequest();
+    req.open('GET', URL, true);
+    req.onload = function () {
+        if (req.status === 200) {
+            deferred.resolve(req.responseText); // (2)
+        } else {
+            deferred.reject(new Error(req.statusText)); // (3)
+        }
+    };
+    req.onerror = function () {
+        deferred.reject(new Error(req.statusText)); // (4)
+    };
+    req.send();
+    return deferred.promise; // (5)
+}
+// 运行示例
+var URL = "http://httpbin.org/get";
+getURL(URL).then(function onFulfilled(value){
+    console.log(value);
+}).catch(console.error.bind(console));
+```
+
+* `Deferred` 的话不需要将代码用Promise括起来
+  * 由于没有被嵌套在函数中，可以减少一层缩进
+  * 反过来没有Promise里的错误处理逻辑
+
+由于 `Deferred` 包含了 `Promise`，所以大体的流程还是差不多的，不过 `Deferred` 有用对 `Promise` 进行操作的特权方法，以及高度自由的对流程控制进行自由定制。
+如果说 `Promise` 是用来对值进行抽象的话，`Deferred` 则是对处理还没有结束的状态或操作进行抽象化的对象，我们也可以从这一层的区别来理解一下这两者之间的差异。
+
+放另一个例子，`nodejs/util/promisify` 也是采用 `Deferred` 的方式：
+``` js
+var kCustomPromisifiedSymbol = typeof Symbol !== 'undefined' ? Symbol('util.promisify.custom') : undefined;
+
+exports.promisify = function promisify(original) {
+  if (typeof original !== 'function')
+    throw new TypeError('The "original" argument must be of type Function');
+
+  if (kCustomPromisifiedSymbol && original[kCustomPromisifiedSymbol]) {
+    var fn = original[kCustomPromisifiedSymbol];
+    if (typeof fn !== 'function') {
+      throw new TypeError('The "util.promisify.custom" argument must be of type Function');
+    }
+    Object.defineProperty(fn, kCustomPromisifiedSymbol, {
+      value: fn, enumerable: false, writable: false, configurable: true
+    });
+    return fn;
+  }
+
+  function fn() {
+    var promiseResolve, promiseReject;
+    var promise = new Promise(function (resolve, reject) {
+      promiseResolve = resolve;
+      promiseReject = reject;
+    });
+
+    var args = [];
+    for (var i = 0; i < arguments.length; i++) {
+      args.push(arguments[i]);
+    }
+    args.push(function (err, value) {
+      if (err) {
+        promiseReject(err);
+      } else {
+        promiseResolve(value);
+      }
+    });
+
+    try {
+      original.apply(this, args);
+    } catch (err) {
+      promiseReject(err);
+    }
+
+    return promise;
+  }
+
+  Object.setPrototypeOf(fn, Object.getPrototypeOf(original));
+
+  if (kCustomPromisifiedSymbol) Object.defineProperty(fn, kCustomPromisifiedSymbol, {
+    value: fn, enumerable: false, writable: false, configurable: true
+  });
+  return Object.defineProperties(
+    fn,
+    getOwnPropertyDescriptors(original)
+  );
+}
+```
 
 现在回顾下 `Promise` 的实现过程，其主要使用了设计模式中的**观察者模式**：
+**`Promise` 里面的 `then` 函数仅仅是注册了后续需要执行的代码，真正的执行是在 `resolve` 方法里面执行的**，理清了这层，再来分析源码会省力的多。
 
 通过 `Promise.prototype.then` 和 `Promise.prototype.catch` 方法将观察者方法注册到被观察者 `Promise` 对象中，同时返回一个新的 `Promise` 对象，以便可以链式调用。
 被观察者管理内部 `pending`、`fulfilled` 和 `rejected` 的状态转变，同时通过构造函数中传递的 `resolve` 和 `reject` 方法以主动触发状态转变和通知观察者。
