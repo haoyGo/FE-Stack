@@ -33,6 +33,8 @@
 * 算法
   * [Array](./算法/Array/index.md)
   * [List](./算法/List/index.md)
+  * [Stack](./算法/Stack/index.md)
+  * [Quene](./算法/Quene/index.md)
   * [Tree](./算法/Tree/index.md)
   * [Leetcode](./算法/Leetcode/index.md)
   * [KMP](./算法/KMP/index.md)
