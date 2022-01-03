@@ -76,11 +76,16 @@ JS异步依赖于 `事件触发线程` 管理的 `事件队列`，每个异步�
   * setImmediate
   * MessageChannel
   * postMessage
+  * I/O
+  * script(JS 引擎执行)
+  * GUI rendering
 * microtask
-  * Promise
+  * Promise.then/catch/finally
   * MutationObserver：监听dom变化
+  * fetch API
+  * v8 垃圾回收
   * process.nextTick(NodeJS)
-  
+
 * 宏任务的回调会添加到 `事件队列`，每次执行完一个回调，浏览器会重新渲染。
 * 宏任务中碰到微任务，会在执行完这个宏任务后执行所有微任务，然后重新渲染，继续执行下一个宏任务。
   ``` js

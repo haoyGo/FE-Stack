@@ -68,6 +68,10 @@
   }
   ```
   ---
+
+* 继承
+  
+  ---
   
 * deepclone
   
@@ -79,6 +83,10 @@
 
 * curry
 
+  ---
+
+* eventEmitter
+  
   ---
 
 ### js-skills
