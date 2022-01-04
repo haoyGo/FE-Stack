@@ -1,6 +1,7 @@
 # FE - Stack
 * [ECMAScript](./ECMAScript/index.md)
   * [Promise](./ECMAScript/Promise/index.md)
+  * [Promise-Ques](./ECMAScript/Promise/promise-ques.md)
   * [Symbol](./ECMAScript/Symbol/Symbol.md)
   * [Symbol内置属性](./ECMAScript/Symbol/内置Symbol属性.md)
 * [JS原理](./JS原理/index.md)
@@ -15,13 +16,15 @@
   * [缓存](./浏览器/缓存/浏览器缓存.md)
   * [DNS缓存](./浏览器/缓存/DNS缓存.md)
   * [CDN缓存](./浏览器/缓存/CDN缓存.md)
+  * [Dom事件](./浏览器/Dom/事件.md)
+  * [跨域](./浏览器/跨域/index.md)
 * [Vue2](./Vue2/index.md)
   * [实例化](./Vue2/实例化.md)
   * [响应式原理](./Vue2/响应式原理.md)
   * [模版编译](./Vue2/模版编译.md)
   * [渲染更新](./Vue2/渲染更新.md)
   * [nextTick](./Vue2/nextTick.md)
-  * 事件监听器
+  * EventEmitter
   * 静态标记
 * Vue3
   * [Vue2 vs Vue3](./Vue3/Vue3%20vs%20Vue2.md)
