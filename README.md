@@ -5,6 +5,7 @@
   * [Symbol](./ECMAScript/Symbol/Symbol.md)
   * [Symbol内置属性](./ECMAScript/Symbol/内置Symbol属性.md)
 * [JS原理](./JS原理/index.md)
+  * [垃圾回收](./JS原理/垃圾回收.md)
 * [手写题](./coding.md)
 * HTTP
   * [HTTP](./HTTP/HTTP.md)
