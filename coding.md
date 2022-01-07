@@ -70,7 +70,15 @@
   ---
 
 * 继承
-  
+  ``` js
+  // 寄生组合式继承
+  function Student(name, age, grade) {
+    Person.call(this, name, age);
+    this.grade = grade;
+  }
+  Student.prototype = Object.create(Person.prototype);  
+  Student.prototype.constructor = Student;
+  ```
   ---
   
 * deepclone

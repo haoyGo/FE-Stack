@@ -51,6 +51,7 @@
 * [web 安全](./Web安全/index.md)
 * 性能优化
   * sql 查询优化：字段索引，分区分表，读写分离
+* 代码质量
 * 部署
   * docker vs virtual machine
 * 前端监控

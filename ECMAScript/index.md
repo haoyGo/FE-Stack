@@ -44,7 +44,7 @@
       * 不管是否有 rejected，都会返回第一个 fulfilled 的值
     * `Promise.race`
       * 返会第一个 resolved 的值，可以是 rejected 或 fulfilled
-    * `Promise.then(onFulfilled, onRejected)`
+    * `promise.then(onFulfilled, onRejected)`
 10. `let & const`
 ---
 

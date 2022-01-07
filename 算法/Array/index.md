@@ -10,7 +10,7 @@ const mergeArr = (arr1, arr2) => {
 
   while (len2 >= 0) {
     if (len1 < 0) {
-      arr1[len--] = arr2[len2--]
+      arr1[len1--] = arr2[len2--]
     }
 
     arr1[idx--] = arr1[len1] >= arr2[len2] ? arr1[len1--] : arr2[len2--]
