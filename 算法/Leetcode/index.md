@@ -7,7 +7,7 @@
     let l = 0, r = nums.length - 1, mid
     while (l <= r) {
         // mid = Math.floor((l + r) / 2)
-        mid = (l + r) >> 1
+        mid = l + (r - l) >> 1 // 避免值溢出
         if (nums[mid] === target) return mid
         else if (nums[mid] < target) l = mid + 1
         else r = mid - 1
