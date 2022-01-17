@@ -61,7 +61,6 @@
   * Prometheus
 * [JS 设计模式](./JS-patterns/设计模式.md)
 * [Nodejs](./NodeJs/index.md)
-  * 多线程、多进程原理；通信
   * koa
   * express
   * NestJS
