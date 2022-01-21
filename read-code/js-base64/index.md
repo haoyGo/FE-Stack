@@ -3,7 +3,7 @@
 项目中使用到 js-base64 处理字符串编码解码，翻了源码做一下记录。
 
 > [工具包 js-base64](https://github.com/dankogai/js-base64.git)
-> [Base64-doc](https://developer.mozilla.org/en-US/docs/Glossary/Base64)
+> [Base64](https://developer.mozilla.org/en-US/docs/Glossary/Base64)
 ### 处理 base64 编码的主要是下面一段
 ``` ts
 const _hasbtoa = typeof btoa === 'function'
@@ -11,6 +11,7 @@ const _hasBuffer = typeof Buffer === 'function';
 
 const _btoa = _hasbtoa ? (bin: string) => btoa(bin)
   : _hasBuffer ? (bin: string) => Buffer.from(bin, 'binary').toString('base64')
+  : btoaPolyfill
 
 const btoaPolyfill = (bin: string) => {
   // console.log('polyfilled');
@@ -39,7 +40,7 @@ export { btoa: _btoa }
   
    > 官方定义：The btoa() method creates a Base64-encoded ASCII strig from a [binary string](https://developer.mozilla.org/en-US/docs/Web/API/DOMString/Binary) (i.e., a String object in which each character in the string is treated as a byte of binary data).
   
-   关于 `binary string`：JS string 采用的是 UTF-16 编码方式存储的，意味着每个字符占两个字节的内存空间。可以表示 `2**16 = 65536 (0 ~ 65535)` 种不同的字符。
+   JS string 采用的是 UTF-16 编码方式存储的，意味着每个字符占两个字节的内存空间。可以表示 `2**16 = 65536 (0 ~ 65535)` 种不同的字符。
    而 `binary string` 每个 `data` 为一个字节，即最大为`2**8 = 256 (0 ~ 255)`。
    `btoa` 方法处理 string 内部是转为 binary string 方式去处理的，或者说超过255的字符会报异常：
   
@@ -267,7 +268,7 @@ export { btoa: _btoa }
   String.fromCharCode(65537).charCodeAt() // 1
   ```
 
-  [String.prototype.charCodeAt](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt) 方法可以处理这种越界的情况：
+  [String.prototype.codePointAt](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt) 方法可以处理这种越界的情况：
   ``` js
   String.fromCodePoint(65535).codePointAt() // 65535
   String.fromCodePoint(65536).codePointAt() // 65536

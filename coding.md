@@ -82,6 +82,197 @@
   ---
   
 * deepclone
+  利用其他 API
+  ``` js
+  /*** Structured Clone 结构化克隆算法 ***/
+
+  // MessageChannel
+  // 优点是能解决循环引用的问题，还支持大量的内置数据类型。
+  // 缺点就是这个方法是异步的。
+  function structuralClone(obj) {
+    return new Promise(resolve => {
+      const {port1, port2} = new MessageChannel();
+      port2.onmessage = ev => resolve(ev.data);
+      port1.postMessage(obj);
+    })
+  }
+  const obj = /* ... */;
+  structuralClone(obj).then(res=>{
+    console.log(res);
+  })
+
+
+  // History API
+  // 利用history.replaceState。这个api在做单页面应用的路由时可以做无刷新的改变url。这个对象使用结构化克隆，而且是同步的。但是我们需要注意，在单页面中不要把原有的路由逻辑搞乱了。所以我们在克隆完一个对象的时候，要恢复路由的原状。
+  // 优点是能解决循环对象的问题，也支持许多内置类型。并且是同步的。
+  // 缺点就是有的浏览器对调用频率有限制。比如Safari 30 秒内只允许调用 100 次
+  function structuralClone(obj) {
+    const oldState = history.state;
+    history.replaceState(obj, document.title);
+    const copy = history.state;
+    history.replaceState(oldState, document.title);
+    return copy;
+  }
+
+  var obj = {};
+  var b = {obj};
+  obj.b = b
+  var copy = structuralClone(obj); 
+  console.log(copy);
+
+
+  // Notification API
+  // 优点是能解决循环对象问题，也支持许多内置类型的克隆，并且是同步的。
+  // 缺点是这个api的使用需要向用户请求权限，但是用在这里克隆数据的时候，不经用户授权也可以使用。在http协议的情况下会提示你再https的场景下使用
+  function structuralClone(obj) {
+    return new Notification('', {data: obj, silent: true}).data;
+  }
+
+  var obj = {};
+  var b = {obj};
+  obj.b = b
+  var copy = structuralClone(obj);
+  console.log(copy)
+
+  ```
+
+  深拷贝原理（lodash）
+  * 通过 `typeof` 区分是否是 `object`，不是直接返回
+    ``` js
+    function isObject(value) {
+      const type = typeof value
+      return value != null && (type === 'object' || type === 'function')
+    }
+
+    if (!isObject(value)) {
+      return value
+    }
+    ```
+  * 通过 `Array.isArray` 判断是否是数组，数组初始化
+    ``` js
+    function initCloneArray(array) {
+      const { length } = array
+      const result = new array.constructor(length)
+
+      // Add properties assigned by `RegExp#exec`.
+      if (length && typeof array[0] === 'string' && hasOwnProperty.call(array, 'index')) {
+        result.index = array.index
+        result.input = array.input
+      }
+      return result
+    }
+    ```
+  * 通过 `Buffer.isBuffer` 判断是否是 `Buffer`
+    ``` js
+    const nativeIsBuffer = Buffer ? Buffer.isBuffer : undefined
+    const isBuffer = nativeIsBuffer || (() => false)
+
+    function cloneBuffer(buffer, isDeep) {
+      if (isDeep) {
+        return buffer.slice()
+      }
+      const length = buffer.length
+      const result = allocUnsafe ? allocUnsafe(length) : new buffer.constructor(length)
+
+      buffer.copy(result)
+      return result
+    }
+    ```
+  * 对象初始化
+    ``` js
+    function initCloneObject(object) {
+      return (typeof object.constructor === 'function' && !isPrototype(object))
+        ? Object.create(Object.getPrototypeOf(object))
+        : {}
+    }
+    ```
+  * 其余情况
+    ``` js
+    function cloneRegExp(regexp) {
+      const reFlags = /\w*$/
+      const result = new regexp.constructor(regexp.source, reFlags.exec(regexp))
+      result.lastIndex = regexp.lastIndex
+      return result
+    }
+
+    function cloneSymbol(symbol) {
+      const symbolValueOf = Symbol.prototype.valueOf
+      return Object(symbolValueOf.call(symbol))
+    }
+
+    function initCloneByTag(object, tag, isDeep) {
+      const Ctor = object.constructor
+      switch (tag) {
+        case arrayBufferTag:
+          return cloneArrayBuffer(object)
+
+        case boolTag:
+        case dateTag:
+          return new Ctor(+object)
+
+        case dataViewTag:
+          return cloneDataView(object, isDeep)
+
+        case float32Tag: case float64Tag:
+        case int8Tag: case int16Tag: case int32Tag:
+        case uint8Tag: case uint8ClampedTag: case uint16Tag: case uint32Tag:
+          return cloneTypedArray(object, isDeep)
+
+        case mapTag:
+          return new Ctor
+
+        case numberTag:
+        case stringTag:
+          return new Ctor(object)
+
+        case regexpTag:
+          return cloneRegExp(object)
+
+        case setTag:
+          return new Ctor
+
+        case symbolTag:
+          return cloneSymbol(object)
+      }
+    }
+    ```
+  * `Map` 拷贝
+    ``` js
+    if (tag == mapTag) {
+      value.forEach((subValue, key) => {
+        result.set(key, baseClone(subValue, bitmask, customizer, key, value, stack))
+      })
+      return result
+    }
+    ```
+  * `Set` 拷贝
+    ``` js
+    if (tag == setTag) {
+      value.forEach((subValue) => {
+        result.add(baseClone(subValue, bitmask, customizer, subValue, value, stack))
+      })
+      return result
+    }
+    ```
+  * 对象通过遍历所有 `keys` 进行拷贝，需要考虑 `Symbol`，这里不考虑继承链上的属性
+    ``` js
+    // Object.keys 相当于 Object.getOwnPropertyNames 过滤掉不可枚举的属性
+    Object.keys // 拿对象自身，可枚举属性，无Symbol
+
+    for in // 拿对象自身，和继承链属性，可枚举属性，无 Symbol
+
+    Object.getOwnPropertySymbols // 拿对象自身，所有 Symbol 属性，包括不可枚举
+    function getSymbols(object) {
+      const propertyIsEnumerable = Object.prototype.propertyIsEnumerable
+      const nativeGetSymbols = Object.getOwnPropertySymbols
+      if (object == null) {
+        return []
+      }
+      object = Object(object)
+      return nativeGetSymbols(object).filter((symbol) => propertyIsEnumerable.call(object, symbol))
+    }
+    ```
+  * 最后考虑循环引用，通过一个 `Map` 存储遍历过的对象，如果已经存在，直接返回。注意，这个 Map 需跟随整个深拷贝直到结束，每次深拷贝则新建一个新的 Map
   
   ---
 
