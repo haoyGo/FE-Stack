@@ -29,4 +29,33 @@ var main = (str) => {
 }
 
 console.log(main('abcd'))
+
+// 2
+var permutation = function(s) {
+    const res = [], len = s.length, arr = s.split('')
+
+    const swap = (i, j) => [arr[i], arr[j]] = [arr[j], arr[i]]
+
+    const backtrack = (from) => {
+        if (from === len - 1) {
+            res.push(arr.join(''))
+            return
+        }
+
+        const set = new Set()
+        for (let i = from; i < len; i++) {
+            if (set.has(arr[i])) continue
+
+            set.add(arr[i])
+            swap(i, from)
+            backtrack(from + 1)
+            swap(i, from)
+        }
+    }
+
+    backtrack(0)
+
+    return res
+};
 ```
+
