@@ -254,7 +254,7 @@
       return result
     }
     ```
-  * 对象通过遍历所有 `keys` 进行拷贝，需要考虑 `Symbol`，这里不考虑继承链上的属性
+  * 对象通过遍历所有 `keys` 进行拷贝，需要考虑继承链上的属性，以及 `Symbol`
     ``` js
     // Object.keys 相当于 Object.getOwnPropertyNames 过滤掉不可枚举的属性
     Object.keys // 拿对象自身，可枚举属性，无Symbol
@@ -281,10 +281,22 @@
   ---
 
 * curry
-
+  ``` js
+  function curry(func) {
+    return function curried(...args) {
+      if (args.length >= func.length) {
+        return func.apply(this, args);
+      } else {
+        return function(...args2) {
+          return curried.apply(this, args.concat(args2));
+        }
+      }
+    };
+  }
+  ```
   ---
 
-* eventEmitter
+* [eventEmitter](./read-code/emitter/emitter.md)
   
   ---
 
