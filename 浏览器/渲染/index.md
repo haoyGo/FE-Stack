@@ -10,6 +10,13 @@ DOMContentLoaded 事件触发时，仅当DOM加载完成，不包括样式表，
 
 ---
 
+ * CSS 不会阻塞 DOM 的解析（构建），但会阻塞 DOM 渲染。
+ * JS 阻塞 DOM 解析（构建），但浏览器会预先下载相关资源。
+ * 浏览器遇到 `<script>` 且没有defer或async属性的 标签时，会触发页面渲染，因而如果前面CSS资源尚未加载完毕时，浏览器会等待它加载完毕在执行脚本。
+ 所以，`<script>` 最好放底部，`<link>` 最好放头部，如果头部同时有 `<script>` 与 `<link>` 的情况下，最好将 `<script>` 放在 `<link>` 上面
+
+---
+
 ### css加载
 * css 由单独的下载线程异步下载
 * `css加载` 不会阻塞 DOM 树构建
@@ -21,4 +28,11 @@ DOMContentLoaded 事件触发时，仅当DOM加载完成，不包括样式表，
 * `transform: translate3d; transform: translateZ`
 * `opacity`
 * `will-change: transform;`
+
 ---
+
+### 避免浏览器过多回流
+* 合并多次 DOM 操作，CSS 操作
+* 使用 `createDocumentFragment`，或者设置 CSS `display: none` 进行操作
+* 获取布局信息，会强制浏览刷新，应该进行缓存使用
+  clientHeight/clientWidth、offsetHeight/offsetWidth、scrollHeight/scrollWidth、getBoundingClientRect()、getComputedStyle() 等
