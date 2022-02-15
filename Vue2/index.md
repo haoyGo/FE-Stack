@@ -18,7 +18,7 @@ MVVM表示的是 Model-View-ViewModel
 ### 响应式原理
 在 Vue 中，数据模型下的所有属性，会被 Vue 使用 `Object.defineProperty` （Vue3.0 使用 Proxy）进行数据劫持代理。响应式的核心机制是观察者模式，数据是被观察的一方，一旦发生变化，通知所有观察者，这样观察者可以做出响应，比如当观察者为视图时，视图可以做出视图的更新。
 Vue.js 的响应式系统以来三个重要的概念，Observer、Dep、Watcher。
-详见 [Vue2 响应式原理](./Vue2%20响应式原理.md)
+详见 [Vue2 响应式原理](./响应式原理.md)
 
 #### 发布者-Observer
 Observe 扮演的角色是发布者，他的主要作用是在组件vm初始化的时，调用defineReactive函数，使用Object.defineProperty方法对对象的每一个子属性进行数据劫持/监听，即为每个属性添加getter和setter，将对应的属性值变成响应式。
@@ -58,7 +58,7 @@ render-watcher：每一个组件都会有一个render-watcher, 当data/computed�
 原理：当自组件 `vm` 实例化时，获取到父组件传入的 slot 内容，存放到 `vm.$slots` 和 `vm.$scopedSlots`。当组件进行渲染时，遇到 `<slot>` 标签，进行替换。
 
 ### 模版编译
-将 `<template>` 转换为渲染函数，详见 [Vue2 模版编译](./Vue%20模版编译.md)
+将 `<template>` 转换为渲染函数，详见 [Vue2 模版编译](./模版编译.md)
 
 ### 预编译
 对于 Vue 组件来说，模版编译只会在组件实例化时候编译一次，生成 `render` 后不会再编译。编译对组件的 `runtime` 是一种性能损耗。所以模版编译的过程可以在构建时候完成。
