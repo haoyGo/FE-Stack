@@ -57,8 +57,8 @@
       const prototype = constr.prototype
       let proto = getProto(obj)
 
-      while(true) {
-          if (proto == null)
+      while (true) {
+          if (!proto)
               return false
           if (proto === prototype)
               return true

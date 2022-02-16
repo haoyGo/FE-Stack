@@ -125,19 +125,19 @@ const toDefaultPrimitive = Symbol('toNumberPrimitive')
 class MyObj {
     toNumberPrimitive() {
         return 10
-    },
+    }
     toStringPrimitive() {
         return 'StringPrimitive'
-    },
+    }
     toDefaultPrimitive() {
         return 'Default'
-    },
+    }
     [Symbol.toPrimitive](hint) {
         return this[`to${hint[0].toUpperCase() + hint.slice(1)}Primitive`]()
     }
 }
 const obj = new MyObj()
-+obj // 10
-String(ttt) // 'StringPrimitive'
-ttt == 'Default' // true
+console.log(+obj) // 10
+console.log(String(obj)) // 'StringPrimitive'
+console.log((obj == 'Default') // true
 ```
