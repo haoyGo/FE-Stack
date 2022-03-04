@@ -69,6 +69,16 @@
   ```
   ---
 
+* Object.create
+  ``` javascript
+  function create(obj) {
+    function F() {}
+    F.prototype = obj
+    return new F()
+  }
+  ```
+  ---
+
 * 继承
   ``` js
   // 寄生组合式继承
