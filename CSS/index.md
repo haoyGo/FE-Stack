@@ -6,18 +6,18 @@
 * 类选择器、伪类选择器、属性选择器：10
 * 标签选择器、伪元素选择器：1
 
-| 选择器 | 格式 | 优先级权重 |
-| --- | --- | --- |
-| id选择器 | #id | 100 |
-| 类选择 | .classname | 10 |
-| 属性选择器 | a[ref=“eee”] | 10 |
-| 伪类选择器 | li:last-child | 10 |
-| 标签选择器 | div | 1 |
-| 伪元素选择器 | li::after | 1 |
-| 相邻兄弟选择器 | h1+p | 0 |
-| 子选择器 | ul>li | 0 |
-| 后代选择器 | li a | 0 |
-| 通配符选择器 | * | 0 |
+| 选择器         | 格式          | 优先级权重 |
+|-------------|---------------|------------|
+| id选择器       | #id           | 100        |
+| 类选择         | .classname    | 10         |
+| 属性选择器     | a[ref=“eee”]  | 10         |
+| 伪类选择器     | li:last-child | 10         |
+| 标签选择器     | div           | 1          |
+| 伪元素选择器   | li::after     | 1          |
+| 相邻兄弟选择器 | h1+p          | 0          |
+| 子选择器       | ul>li         | 0          |
+| 后代选择器     | li a          | 0          |
+| 通配符选择器   | *             | 0          |
 
 ---
 
@@ -795,3 +795,34 @@ const scale = 1 / window.devicePixelRatio;
 metaEl.setAttribute('content', `width=device-width,user-scalable=no,initial-scale=${scale},maximum-scale=${scale},minimum-scale=${scale}`);
 ```
 这样解决了，但这样做的副作用也很大，整个页面被缩放了。这时 1px 已经被处理成物理像素大小，这样的大小在手机上显示边框很合适。但是，一些原本不需要被缩小的内容，比如文字、图片等，也被无差别缩小掉了。
+
+## 新特性
+### :has 父类选择器
+``` HTML
+<div class="conatiner">
+  <div class="title">标题</div>
+  <div class="btn-group">
+    <i class="bald-edit" style="opacity:0"></i>
+    <i class="bald-more"></i>
+  </div>
+</div>
+```
+要求实现效果：只有鼠标悬浮在标题元素时编辑按钮显
+由于 title 元素和 bald-edit 元素相当于在同层级，所以 title 的**鼠标悬浮是控制不了不是它子元素的其他元素**。 在以前，我们只能通过JS去监听titile元素的鼠标移入移出事件来控制编辑按钮显示的隐藏。
+而使用:has选择器，只需要一行CSS就可以轻松实现：
+
+``` css
+.conatiner:has(.title:hover) .bald-edit {
+  opacity: 1;
+}
+```
+
+### attr
+``` html
+<div data-widt="200"></div>
+<style>
+  div {
+    width: attr(data-width px, 100);  /* 100 为兜底值 */
+  }
+</style>
+```

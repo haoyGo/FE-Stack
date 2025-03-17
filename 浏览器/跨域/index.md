@@ -60,7 +60,15 @@
   上面这段代码相当于向http://localhost:3000/say?wd=Iloveyou&callback=show这个地址请求数据，然后后台返回show('我不爱你')，最后会运行show()这个函数，打印出'我不爱你'
 
 #### 2. CORS
-浏览器会自动进行CORS通信，实现CORS通信的关键是后端。只要后端实现了CORS，就实现了跨域。服务端设置 `Access-Control-Allow-Origin` 就可以开启 CORS。 该属性表示哪些域名可以访问资源，如果设置通配符则表示所有网站都可以访问资源。
+浏览器会自动进行CORS通信，实现CORS通信的关键是后端。只要后端实现了CORS，就实现了跨域。服务端设置 `Access-Control-Allow-Origin` 就可以开启 CORS。 
+服务端设置：
+- `Access-Control-Allow-Origin`: 允许的源
+  - 避免使用 `Access-Control-Allow-Origin: *`
+  - 携带凭证时需要明确指定域名
+- `Access-Control-Allow-Credentials`: 是否允许携带凭证
+- `Access-Control-Allow-Methods`: 允许的方法
+- `Access-Control-Allow-Headers`: 允许的头部
+- `Access-Control-Max-Age`: 预检请求缓存时间
 
 * 简单请求
   * method: `GET/POST/HEAD`
@@ -70,7 +78,7 @@
     * `application/x-www-form-urlencoded`
 
 * 复杂请求
-不满足上面条件的属于复杂请求，复杂请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为**预检请求**,该请求是 `option` 方法的，通过该请求来知道服务端是否允许跨域请求。
+不满足上面条件的属于复杂请求，复杂请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为**预检请求**,该请求是 `option` 方法的，通过该请求来知道服务端是否允许跨域请求。返回 `204 No Content`
 
 #### 3. [postMessage](https://developer.mozilla.org/zh-CN/docs/Web/API/Window/postMessage)
 `postMessage` 是 `HTML5 XMLHttpRequest Level 2` 中的API，且是为数不多可以跨域操作的window属性之一。
