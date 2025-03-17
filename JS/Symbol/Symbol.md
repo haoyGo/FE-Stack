@@ -64,19 +64,6 @@ Symbol.keyFor(s2); // "global"
 
 ![](imgs/Symbol.for.jpg)
 
-应用场景一：
-```
-const peopleName = Symbol('peopleName');
-const peopleAge = Symbol('peopleAge');
-
-const people = {
-  [peopleName]: 'hy',
-};
-obj[peopleAge] = 18;
-
-obj[peopleName]; // 'hy'
-obj[peopleAge]; // 18
-```
 **需要注意：使用Symbol作为对象的属性key后，一般的枚举方法（例如 for...in）会将其排除。**
 ```
 const obj = {

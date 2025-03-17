@@ -31,7 +31,7 @@
 
     const fn = this
     return function(...rest2) {
-        return fn.apply(context, rest1.concat(rest2))
+        return fn.apply(this instanceof fn ? this : context, rest1.concat(rest2))
     }
   }
   ```
@@ -40,12 +40,18 @@
 * new
   ``` javascript
   function iNew() {
-      const [fn, ...rest] = arguments
-      const that = Object.create(fn.prototype)
+    const arg = [...arguments]
+    const Fn = constructor
 
-      const res = fn.apply(that, rest)
+    if (typeof constructor !== "function") {
+      throw new TypeError('constructor is not a function')
+    }
 
-      return (['object', 'function'].includes(typeof res) && res) || that
+    const that = Object.create(Fn.prototype)
+    const res = Fn.apply(that, arg)
+
+    // res 如果是null，返回that
+    return ['object', 'function'].includes(typeof res) && res || that
   }
   ```
   ---
@@ -86,11 +92,11 @@
     Person.call(this, name, age);
     this.grade = grade;
   }
-  Student.prototype = Object.create(Person.prototype);  
+  Student.prototype = Object.create(Person.prototype);
   Student.prototype.constructor = Student;
   ```
   ---
-  
+
 * deepclone
   利用其他 API
   ``` js

@@ -1,15 +1,26 @@
 **1. 使用 `Promise` 实现每隔1秒输出1,2,3**
 ``` js
 [...new Array(5).keys()].reduce(p => {
-  return p.then(res => {
-    return new Promise((resolve, reject) => {
+  return p.then(num => {
+    return new Promise(resolve => {
       setTimeout(() => {
-        console.log(res)
-        resolve(res + 1)
+        console.log(num)
+        resolve(num + 1)
       }, 1000)
     })
   })
 }, Promise.resolve(1))
+// or
+[...new Array(4).keys()].reduce(p => {
+  return Promise.resolve(p).then(num => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        console.log(num)
+        resolve(num + 1)
+      }, 1000)
+    })
+  })
+}, 1)
 ```
 
 **2. 使用Promise实现红绿灯交替重复亮**

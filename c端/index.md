@@ -8,14 +8,14 @@
 `<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
 `
 
-| 值 | 可能的附加值 | 描述 |
-| --- | --- | --- |
-| `width` | 一个正整数，或者字符串 device-width	| 定义 viewport 的宽度，如果值为正整数，则单位为像素。或者设置为设备宽度。 |
-| `height` | 一个正整数，或者字符串 device-height |	定义 viewport 的高度。未被任何浏览器使用。 |
-| `initial-scale` |	一个 0.0 和 10.0 之间的正数 |	定义设备宽度（宽度和高度中更小的那个：如果是纵向屏幕，就是 device-width，如果是横向屏幕，就是 device-height）与 viewport 大小之间的缩放比例。 |
-| `maximum-scale`	| 一个 0.0 和 10.0 之间的正数	| 定义缩放的最大值，必须大于等于 minimum-scale，否则表现将不可预测。浏览器设置可以忽略此规则；iOS 10 开始，Safari iOS 默认忽略此规则。 |
-| `minimum-scale` | 一个 0.0 和 10.0 之间的正数 |	定义缩放的最小值，必须小于等于 maximum-scale，否则表现将不可预测。浏览器设置可以忽略此规则；iOS 10 开始，Safari iOS 默认忽略此规则。 |
-| `user-scalable`	| yes 或者 no	| 默认为 yes，如果设置为 no，用户将无法缩放当前页面。浏览器设置可以忽略此规则；iOS 10 开始，Safari iOS 默认忽略此规则。 |
+| 值              | 可能的附加值                        | 描述                                                                                                                                   |
+|-----------------|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `width`         | 一个正整数，或者字符串 device-width  | 定义 viewport 的宽度，如果值为正整数，则单位为像素。或者设置为设备宽度。                                                                   |
+| `height`        | 一个正整数，或者字符串 device-height | 定义 viewport 的高度。未被任何浏览器使用。                                                                                               |
+| `initial-scale` | 一个 0.0 和 10.0 之间的正数         | 定义设备宽度（宽度和高度中更小的那个：如果是纵向屏幕，就是 device-width，如果是横向屏幕，就是 device-height）与 viewport 大小之间的缩放比例。 |
+| `maximum-scale` | 一个 0.0 和 10.0 之间的正数         | 定义缩放的最大值，必须大于等于 minimum-scale，否则表现将不可预测。浏览器设置可以忽略此规则；iOS 10 开始，Safari iOS 默认忽略此规则。         |
+| `minimum-scale` | 一个 0.0 和 10.0 之间的正数         | 定义缩放的最小值，必须小于等于 maximum-scale，否则表现将不可预测。浏览器设置可以忽略此规则；iOS 10 开始，Safari iOS 默认忽略此规则。         |
+| `user-scalable` | yes 或者 no                         | 默认为 yes，如果设置为 no，用户将无法缩放当前页面。浏览器设置可以忽略此规则；iOS 10 开始，Safari iOS 默认忽略此规则。                        |
 
 #### 动态更改
 ``` html
@@ -85,5 +85,3 @@ pc上 **1CSS像素** 基本等于 **1物理像素**。
   var fontsize = 10 * (docEl.clientWidth / 320) + 'px';  
   docEl.style.fontSize = fontsize;  
   ```
-
-* box-shadow 

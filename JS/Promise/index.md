@@ -28,6 +28,9 @@ let p = new Promise(resolve => {
 }).then((tip) => {
   console.log(tip);
 })
+// 输出
+// done
+// 5秒
 ```
 上述代码很简单，大致的逻辑是这样的：
 1. 调用 `then` 方法，将想要在 `Promise` 异步操作成功时执行的 `onFulfilled` 放入 `callbacks` 队列，其实也就是注册回调函数，可以向观察者模式方向思考。(其实整个代码可以看成同步代码，构造函数会直接执行函数内容，里面一般会有异步操作，所以会先执行 `then` 方法注册回调函数 `onFulfilled`)
