@@ -98,7 +98,7 @@ localStorage & sessionStorage
     function dragstart_handler(ev) {
       // Add the target element's id to the data transfer object
       ev.dataTransfer.setData("application/my-app", ev.target.id);
-      ev.dataTransfer.dropEffect = "move";
+      ev.target.classList.add('dragging');
     }
     function dragover_handler(ev) {
       ev.preventDefault();
@@ -109,6 +109,7 @@ localStorage & sessionStorage
       // Get the id of the target and add the moved element to the target's DOM
       var data = ev.dataTransfer.getData("application/my-app");
       ev.target.appendChild(document.getElementById(data));
+      draggedElement.classList.remove('dragging');
     }
     </script>
 
@@ -222,10 +223,193 @@ img 标签新增属性：
 
 ---
 
-### [8. Web Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API/Using_web_workers)
+### [8.1 Web Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API/Using_web_workers)
 * window.Worker
 * myWorker.postMessage
 * myWorker.onmessage
+
+### [8.2 Service Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Service_Worker_API)
+
+**ServiceWorker的事件列表：**
+* install：安装事件，当ServiceWorker安装成功后，就会触发这个事件，这个事件只会触发一次。
+* activate：激活事件，当ServiceWorker激活成功后，就会触发这个事件，这个事件只会触发一次。
+* fetch：网络请求事件，当页面发起网络请求时，就会触发这个事件。
+* push：推送事件，当页面发起推送请求时，就会触发这个事件。
+* sync：同步事件，当页面发起同步请求时，就会触发这个事件。
+* message：消息事件，当页面发起消息请求时，就会触发这个事件。
+* messageerror：消息错误事件，当页面发起消息错误请求时，就会触发这个事件。
+* error：错误事件，当页面发起错误请求时，就会触发这个事件。
+
+ServiceWorker的缓存是基于CacheStorage的，它是一个Promise对象，我们可以通过caches来获取它；CacheStorage提供了一些方法，我们可以通过这些方法来对缓存进行操作；
+
+* 添加缓存
+我们可以通过cache.put来添加缓存，它接收两个参数，第一个参数是Request对象，第二个参数是Response对象；
+  ``` javascript
+  caches.open('my-cache').then(function (cache) {
+    cache.put(new Request('/'), new Response('Hello World'));
+  });
+  ```
+* 获取缓存
+我们可以通过cache.match来获取缓存，它接收一个参数，这个参数可以是Request对象，也可以是URL字符串
+  ``` javascript
+  caches.open('my-cache').then(function (cache) {
+    cache.match('/').then(function (response) {
+        console.log(response);
+    });
+  });
+  ```
+* 删除缓存
+我们可以通过cache.delete来删除缓存，它接收一个参数，这个参数可以是Request对象，也可以是URL字符串；
+  ``` javascript
+  caches.open('my-cache').then(function (cache) {
+    cache.delete('/').then(function () {
+        console.log('删除成功');
+    });
+  });
+  ```
+* 清空缓存
+我们可以通过cache.keys来获取缓存的key，然后通过cache.delete来删除缓存；
+  ``` javascript
+  caches.open('my-cache').then(function (cache) {
+    cache.keys().then(function (keys) {
+        keys.forEach(function (key) {
+            cache.delete(key);
+        });
+    });
+  });
+  ```
+* 拦截请求
+  ``` javascript
+  self.addEventListener('fetch', function (event) {
+    event.respondWith(
+        caches.match(event.request).then(function (response) {
+            if (response) {
+                return response;
+            }
+            return fetch(event.request);
+        })
+    );
+  });
+  ```
+
+1. 注册Service Worker
+* service worker 文件的路径需要相对于源（origin），而不是 app 的根目录。在我们的示例中，worker 是在 https://mdn.github.io/sw-test/sw.js，app 的根目录是 https://mdn.github.io/sw-test/。但是路径需要写成 /sw.js。
+* 也不允许你的 app 指向不同源（origin）的 service worker。
+```javascript
+// 主线程代码
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/' // 控制作用域
+      });
+
+      if (registration.installing) {
+        console.log("正在安装 Service worker");
+      } else if (registration.waiting) {
+        console.log("已安装 Service worker installed");
+      } else if (registration.active) {
+        console.log("激活 Service worker");
+      }
+    } catch (error) {
+      console.log('注册失败:', error);
+    }
+  });
+}
+```
+2. 安装
+* 在 addResourcesToCache() 内，我们使用了 caches.open() 方法来创建了叫做 v1 的新缓存，这将会是我们的站点资源缓存的第 1 个版本。然后我们会在创建的缓存示例中调用 addAll() 函数，它的参数采用一个 URL 数组，指向你想要缓存的所有资源。其中，URL 是相对于 worker 的 location。
+* 上面缓存的所有资源一定都是确定的存在的，不能出现除状态码为 200 以外的其他状态码，否则缓存会失败；
+```javascript
+// 缓存名称（版本更新时修改）
+const CACHE_NAME = 'v1';
+
+const addResourcesToCache = async (resources) => {
+  const cache = await caches.open(CACHE_NAME);
+  await cache.addAll(resources);
+};
+
+// 安装阶段 - 缓存核心文件
+self.addEventListener('install', event => {
+  event.waitUntil(
+    addResourcesToCache([
+      '/',
+      '/index.html',
+      '/main.css',
+      '/app.js',
+      '/fallback.html'
+    ])
+  );
+});
+
+```
+
+3. 激活阶段清除旧版本
+上面我们已经缓存了我们需要资源，但是我们的资源是不会更新的，现在你可以修改一下index.css，然后刷新页面，不管怎么刷新，你的页面都不会更新，这是因为我们的资源是缓存的，所以我们需要更新我们的缓存；
+通常情况下，我们会在activate事件中删除旧的缓存，然后在install事件中缓存新的资源；
+``` javascript
+// 启用导航预加载
+const enableNavigationPreload = async () => {
+  if (self.registration.navigationPreload) {
+    await self.registration.navigationPreload.enable();
+  }
+};
+
+// 激活阶段 - 清理旧缓存
+self.addEventListener('activate', event => {
+  // 预加载
+  event.waitUntil(enableNavigationPreload());
+
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.filter(key => key !== CACHE_NAME) // 删除旧缓存
+          .map(key => caches.delete(key))
+      );
+    })
+  );
+});
+```
+
+1. 运行阶段拦截请求
+* caches.match(event.request) 允许我们对网络请求里的每个资源与缓存里可获取的等效资源进行匹配，查看缓存中是否有相应的资源。该匹配通过 URL 和各种标头进行，就像正常的 HTTP 请求一样。
+* 如果请求 URL 在缓存中不可用，我们将使用 await fetch（request) 从网络请求中请求资源。之后，我们将响应的克隆放入缓存。putInCache() 函数使用 caches.open('v1') 和 cache.put() 将资源增加到缓存中。它的原始响应会返回给浏览器以提供给调用它的页面。
+* ServiceWorker连插件的请求都拦截了，这是因为ServiceWorker的优先级是最高的，它会拦截所有的请求，包括插件的请求。
+
+``` javascript
+const putInCache = async (request, response) => {
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, response);
+};
+
+const cacheFirst = async (request) => {
+  try {
+    // 首先，尝试从缓存中获取资源
+    const responseFromCache = await caches.match(request);
+    if (responseFromCache) {
+      return responseFromCache;
+    }
+
+    // 如果资源不存在缓存中，它们则会从网络中进行请求。
+    // return fetch(request);
+
+    // 然后尝试从网络中获取资源
+    const responseFromNetwork = await fetch(request);
+    // 拷贝放入缓存
+    putInCache(request, responseFromNetwork.clone());
+    return responseFromNetwork;
+  } catch (error) {
+    return caches.match('/fallback.html');
+  }
+};
+
+// 请求拦截
+self.addEventListener('fetch', event => {
+  event.respondWith(cacheFirst(event.request));
+});
+```
+
+需要注意的是，性能的提升是相对于完全没有缓存的情况来讲的，而浏览器本身有着相对完善的HTTP缓存机制。所以使用Service Worker缓存，并不能使我们已经相对完善的架构有立竿见影的性能提升，Service Worker缓存真正有意义的地方在于，利用它可以更精准地、以编码方式控制缓存，如何缓存、缓存什么、如何更新缓存，完全取决于代码如何写，所以这提供了很大的自由度，但同时也带来维护成本。它只是换了一种缓存方式，而不是从无到有的突破。
 
 ---
 
