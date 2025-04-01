@@ -100,9 +100,11 @@
 * deepclone
   利用其他 API
   ``` js
-  /*** Structured Clone 结构化克隆算法 ***/
+  // 1 JSON
+  JSON.parse(JSON.stringify(obj))
 
-  // MessageChannel
+  /*** Structured Clone 结构化克隆算法 ***/
+  // 2. MessageChannel
   // 优点是能解决循环引用的问题，还支持大量的内置数据类型。
   // 缺点就是这个方法是异步的。
   function structuralClone(obj) {
@@ -117,27 +119,7 @@
     console.log(res);
   })
 
-
-  // History API
-  // 利用history.replaceState。这个api在做单页面应用的路由时可以做无刷新的改变url。这个对象使用结构化克隆，而且是同步的。但是我们需要注意，在单页面中不要把原有的路由逻辑搞乱了。所以我们在克隆完一个对象的时候，要恢复路由的原状。
-  // 优点是能解决循环对象的问题，也支持许多内置类型。并且是同步的。
-  // 缺点就是有的浏览器对调用频率有限制。比如Safari 30 秒内只允许调用 100 次
-  function structuralClone(obj) {
-    const oldState = history.state;
-    history.replaceState(obj, document.title);
-    const copy = history.state;
-    history.replaceState(oldState, document.title);
-    return copy;
-  }
-
-  var obj = {};
-  var b = {obj};
-  obj.b = b
-  var copy = structuralClone(obj); 
-  console.log(copy);
-
-
-  // Notification API
+  // 3. Notification API
   // 优点是能解决循环对象问题，也支持许多内置类型的克隆，并且是同步的。
   // 缺点是这个api的使用需要向用户请求权限，但是用在这里克隆数据的时候，不经用户授权也可以使用。在http协议的情况下会提示你再https的场景下使用
   function structuralClone(obj) {
@@ -149,6 +131,8 @@
   obj.b = b
   var copy = structuralClone(obj);
   console.log(copy)
+
+  // 4. structuredClone，新API
 
   ```
 
@@ -292,8 +276,35 @@
   
   ---
 
-* 防抖节流
-  
+* 防抖
+``` js
+const debounce = (fn, millSec) => {
+  let timer = null
+  return function (...args) {
+    if (timer) {
+      clearTimeout(timer)
+    }
+    timer = setTimeout(() => {
+      fn.apply(this, args)
+    }, millSec)
+
+  }
+}
+```
+  ---
+
+* 节流
+``` js
+const throttle = (fn, millSec) => {
+  const now = Date.now();
+  return function (...args) {
+    if (Date.now() - now >= millSec) {
+      now = Date.now()
+      fn.apply(this, args)
+    }
+  }
+}
+```
   ---
 
 * curry

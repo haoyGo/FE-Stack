@@ -1,4 +1,40 @@
-**1. 使用 `Promise` 实现每隔1秒输出1,2,3**
+> [题集](https://juejin.cn/post/6844904077537574919)
+
+
+**Promise.all**
+计数完成所有异步调用，然后 `resolve` 返回所有结果
+``` js
+static all(promises) {
+  return new Promise((resolve, reject) => {
+    let counter = promises.length
+    let res = new Array(counter)
+    promises.forEach((item, index) => {
+      Promise.resolve(item).then(result => {
+        res[index] = result;
+        if (--counter === 0) {
+          resolve(res);
+        }
+      }, reason => reject(reason));
+    })
+
+  })
+}
+```
+---
+
+**Promise.race**
+所有异步调用都注册 `resolve`，只要有一个完成，就直接 `resolve`，但不会停止其他调用继续执行。
+``` js
+static race(promises) {
+  return new Promise(function (resolve, reject) {
+    for (let i = 0, len = promises.length; i < len; i++) {
+      Promise.resolve(promises[i]).then(resolve, reject)
+    }
+  })
+}
+```
+
+**使用 `Promise` 实现每隔1秒输出1,2,3**
 ``` js
 [...new Array(5).keys()].reduce(p => {
   return p.then(num => {
@@ -23,7 +59,7 @@
 }, 1)
 ```
 
-**2. 使用Promise实现红绿灯交替重复亮**
+**使用Promise实现红绿灯交替重复亮**
 ``` js
 function red() {
     console.log('red');
@@ -60,7 +96,7 @@ const step = function () {
 step()
 ```
 
-**3. 实现 `mergePromise` 函数**
+**实现 `mergePromise` 函数**
 实现mergePromise函数，把传进去的数组按顺序先后执行，并且把返回的数据先后放到数组data中。
 ``` js
 const time = (timer) => {
@@ -107,7 +143,7 @@ function mergePromise(pArr) {
 }
 ```
 
-**4. 封装一个异步加载图片的方法**
+**封装一个异步加载图片的方法**
 ``` js
 function loadImg(url) {
   return new Promise((resolve, reject) => {
@@ -124,7 +160,7 @@ function loadImg(url) {
 }
 ```
 
-**5. 限制异步操作的并发个数并尽可能快的完成全部**
+**限制异步操作的并发个数并尽可能快的完成全部**
 ``` js
 function limitLoad(urls, handler, limit) {
   let sequence = [].concat(urls); // 复制urls
