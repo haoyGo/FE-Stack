@@ -2,7 +2,13 @@
 FMP(First Contentful Paint)
 LCP(Largest Contentful Paint )
 TTI (Time To Interactive)
-FMP、LCP、TTI、SI、CLS、TBT
+FMP、LCP、TTI、CLS、TBT
+
+### 性能埋点
+**主要关注P75的FMP、LCP。**
+- FMP衡量主应用加载完成菜单的时间点，此时子应用还是白屏状态
+- LCP衡量子应用页面基本展示完成
+![](./imgs/主应用预加载处理.jpg)
 
 ## 数据采集
 
@@ -18,14 +24,14 @@ var observer2 = new PerformanceObserver(perf_observer);
 observer2.observe({ entryTypes: ["navigation"] });
 ```
 **observer.observe(options);**
-![entryTypes](./entryTypes.jpg)
+![entryTypes](./imgs/entryTypes.jpg)
 
 以 **navigation** 为例，返回的 [entries](https://developer.mozilla.org/zh-CN/docs/Web/API/PerformanceNavigationTiming) 有如下属性
 * PerformanceEntry.entryType：返回 "navigation"。
 * PerformanceEntry.name：返回文档的 URL。
 * PerformanceEntry.startTime：返回值为 0 的 DOMHighResTimeStamp。
 * PerformanceEntry.duration：返回 timestamp 值，即 PerformanceNavigationTiming.loadEventEnd 和 PerformanceEntry.startTime 属性之间的差值。详见下图
-![performance](./performance.jpg)
+![performance](./imgs/performance.jpg)
 #### 经典的资源加载计时指标
 该接口的属性允许你计算某些资源计时指标。常见用例包括：
 - 计算重定向时间（redirectEnd - redirectStart）
@@ -61,14 +67,9 @@ const observer = new PerformanceObserver(function(entryList) {
 observer.observe({ entryTypes: ["paint"] });
 ```
 
-## 看板建设
-Slardar
-
-## 告警建设
-TODO
-
 ## 优化（根据指标，分析优化）
-[chrome performance 面板](./Chrome%20DevTools%20Performance%20功能详解.pdf)
+[chrome performance 面板](./docs/Chrome%20DevTools%20Performance%20功能详解.pdf)
+![](./imgs/厂商架构.jpg)
 
 ### 网络优化
 - preconnect、dns-prefetch
@@ -76,15 +77,19 @@ TODO
   <link rel="preconnect" href="https://fonts.googleapis.com/" >
   <link rel="dns-prefetch" href="https://fonts.googleapis.com/">
   ```
+  ![](./imgs/dns-prefetch.jpg)
 - HTTP2
+  ![](./imgs/h2.jpg)
 - 开启 br 压缩
-- 资源预处理
+  `Content-Encoding: br`
+  ![](./imgs/br.jpg)
+- CDN
+- 资源预加载
   preload、prefetch、prerender
+  ![路由懒加载](./imgs/路由懒加载.jpg)
 
-### 打包优化
-- 拆/合包
-- webpack SplitChunksPlugin
-#### 拆包策略
+### 打包优化/产物优化
+**拆包策略**
 - **尽可能按需加载 -- 减少首屏包体积**
   路由按需加载，通过 loadable 实现。原理是动态 import，内部处理为 prefetch，浏览器空闲加载
   - 加上 webpackChunkName，提高缓存使用率。通过 babel 插件实现，不需要手动填写。
@@ -93,7 +98,7 @@ TODO
     () => import(/* webpackChunkName: "GameLiveList", webpackPrefetch: true */ '../pages/GameLiveList')
   );
   ```
-  ![路由懒加载](./路由懒加载.jpg)
+  ![路由懒加载](./imgs/路由懒加载.jpg)
     1. 配置生成的路由 chunkName
     ``` js
     output: {
@@ -132,6 +137,7 @@ TODO
     };
     ```
   - 依赖包的按需加载 async chunk，通过 cacheGroups 实现，保证 group 优先级最高。存放于目录 /async。
+  ![](./imgs/async-chunk.jpg)
   - 通过分析入口文件，手动动态 import 实现按需加载，通过 loadable 实现。
 - **合理拆包 -- 减少最大包体积**
   1. 将较大的依赖包单独打包 split chunk，后续也可抽离公共包，通过 cacheGroups 实现，优先级低于 async chunk，但高于其他 chunk。存放于目录 /chunk。
@@ -202,45 +208,196 @@ TODO
   }
   ```
 **拆包效果**
-- 首屏只会加载 index chunk、vendor chunk，以及 /chunk 目录下的 split chunk。chunk 脚本直接嵌入 html 文件，defer 加载。
+- 首屏只会加载 **index chunk、vendor chunk，以及 /chunk 目录下的 split chunk**。chunk 脚本直接嵌入 html 文件，**defer 加载**。
 - 路由 chunk、async chunk按需加载。
-![](./chunk.jpg)
-![](./hot-map.jpg)
+![](./imgs/chunk.jpg)
+![](./imgs/hot-map.jpg)
 
-#### 删除无用依赖
+### 包体积优化
+- 删除无用npm包
+- 解决npm包多版本
+1. 依赖分析工具
+   ``` bash
+   # 查看重复依赖
+   npm ls <package-name>
 
-#### 解决依赖包多版本重复引用
+   # Yarn 检测重复版本
+   yarn why <package-name>
+
+   # 可视化分析
+   npx depcheck
+   ```
+2. 产物中中存在大量相同包名却不同版本的包，尽量统一版本，减少 chunk 大小
 - webpack alias
+  ``` js
+  // webpack.config.js
+  module.exports = {
+    resolve: {
+      alias: {
+        'lodash': path.resolve(__dirname, 'node_modules/lodash'),
+        'react': path.resolve(__dirname, 'node_modules/react')
+      }
+    }
+  }
+  ```
 - overrides
+  ``` json
+  // package.json
+  {
+    "overrides": {
+      "lodash": "4.17.21",
+      "react": "18.2.0"
+    }
+  }
+  ```
+- resolutions
+  ```json
+  // package.json
+  {
+    "resolutions": {
+      "lodash": "4.17.21",
+      "**/react": "18.2.0",  // 所有子依赖中的 react
+      "**/semi-ui/**/react-dom": "18.2.0" // 特定路径下的依赖
+    }
+  }
+  ```
 - npm dedupe
-- https://github.com/scinos/yarn-deduplicate
+  ``` bash
+  # NPM v8+
+  npm dedupe
 
-#### 用体积小的依赖包替换
-- moment -> dayjs
-- lodash -> lodash-es
+  # Yarn (需先安装插件)
+  yarn plugin import interactive-tools
+  yarn dedupe --check
+  ```
 
-### CDN
+- 用体积小的依赖包替换
+  - moment -> dayjs
+  - lodash -> lodash-es
+- external
+  主应用和子应用复用公共依赖
+  ``` js
+  import Garfish, * as GarfishLib from '@byted/garfish';
+  import * as React from 'react';
+  import * as ReactDom from 'react-dom';
+  import * as ReactRouter from 'react-router';
+  import * as ReactRouterDom from 'react-router-dom';
+  import * as GuoLib from '../../index';
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  export const setMicroAppExternal = (name, module) => {
+      Garfish.setExternal(name, module);
+  };
+  export const initDefaultExternal = () => {
+      setMicroAppExternal('react', React);
+      setMicroAppExternal('react-dom', ReactDom);
+      setMicroAppExternal('react-router', ReactRouter);
+      setMicroAppExternal('react-router-dom', ReactRouterDom);
+      setMicroAppExternal('@byted/garfish', GarfishLib);
+      setMicroAppExternal('@fe/guo-sdk', GuoLib);
+  };
 
-### Tree shaking
-- sideEffects
+  ```
+  将npm包上传到CDN，做 external src，preload 处理
+  ``` js
+  [
+    {
+      pkgName: '@slardar/web',
+      globalName: 'Slardar',
+      src: 'https://lf3-short.ibytedapm.com/slardar/fe/sdk-web/browser.1.13.0.cn.js',
+      postInject: "window['@slardar/web'] = window.Slardar;"
+    },
+    // TODO @next external semi 必须external react
+    {
+      pkgName: 'react',
+      globalName: 'React',
+      src: 'https://unpkg.byted-static.com/react/16.13.1/umd/react.production.min.js',
+      noExternalInDev: true
+    },
+    {
+      pkgName: 'react-dom',
+      globalName: 'ReactDOM',
+      src: 'https://unpkg.byted-static.com/react-dom/16.13.1/umd/react-dom.production.min.js',
+      noExternalInDev: true
+    }
+  ]
 
-### 压缩
+  function generateExternalFn(matchPkg: string, config: string) {
+    const re = new RegExp(`^${matchPkg}$`, 'i');
+    return function ({ context, request }: any, callback: any) {
+      if (re.test(request)) {
+        return callback(null, config);
+      }
+      callback();
+    };
+  }
+
+  // webpack 插件
+  class WebcastOpenExternalsPlugin {
+    constructor({ type, isRspack }: WebcastOpenExternalsPluginOptions) {
+      this.injectMeta = externalsList.reduce((prev, el) => {
+        if (el.type === 'stylesheet') {
+          isMainApp && prev.push(srcStyle(el.src));
+        } else {
+          isMainApp && prev.unshift(preloadScript(el.src));
+          el.preInject && prev.push(innerHTMLScript(el.preInject));
+          isMainApp && prev.push(srcScript(el.src));
+          el.postInject && prev.push(innerHTMLScript(el.postInject));
+        }
+        return prev;
+      }, [] as any[]);
+
+      this.externals = scriptList.reduce((prev, next) => {
+        if (next.type === 'stylesheet') {
+          return prev;
+        }
+        prev.push(generateExternalFn(next.pkgName, this.isMainApp ? `window ${next.globalName}` : next.pkgName));
+        return prev;
+      }, [] as any[]);
+    }
+
+    apply(compiler: any) {
+      const { externals } = this;
+
+      // 注入externals
+      compiler.options.externals = externals;
+
+      injectHtmlMeta(compiler, this.injectMeta);
+    }
+  }
+  ```
+
+- Tree shaking
+产物中存在第三方包没有tree-sharing的引入，应该配置sideEffects，去掉没有副作用部分代码。
+  - sideEffects
+- 压缩
 js、css、html 采用webpack插件去压缩
+- 图片
+  - 选择图片可以优先使用webp格式。
+  - 矢量图片的话可以选择svg
+  - 预加载、懒加载
+  - 占位
 
-### 图片
-- 择图片可以优先使用webp格式。
-- 矢量图片的话可以选择svg
-- 预加载、懒加载
-- 占位
+**主应用包体积：15.1M / 3.93M(gzip) / 3.33(br)**
+![](./imgs/主应用包体积.jpg)
+**主应用首屏包体积：5.52M / 1.31M(gzip) / 1.1(br)**
+![](./imgs/主应用首屏包体积.jpg)
 
-### 接口预请求
+23个子应用，5M-14M都有，首屏3M-6M（br压缩后 600K-1.2M）
+
+### 资源预请求
 > 在资源加载同时发起请求server接口，提早获取server接口的数据
+
 开平挂载菜单之前需要依赖几个server remote的数据，这些依赖的数据会阻塞菜单内容的渲染，所以应该提早发起请求，并行请求js资源请求和用户数据。
+整理开平主应用挂载路由所依赖的接口，prefetch 需要用到的接口，提前prefetch 菜单配置，提前渲染router。
+权限获取全部prefetch
+  1. /open_platform/perm/role/info
+  2. /open_platform/perm/resource_key_map
+大小游戏
+  1. /open_platform/union/v3/game_open_platform/info
+  2. /open_platform/menu/settings/v2
 
-### 微前端
-主应用可以预请求子应用 garfish preload
-
-#### 直接inject html
+#### 请求prefetch
+**直接inject html**
 将几个纯数据请求的接口在html上写死，等资源加载结束后读window.x变量，获取结果。如果有结果就是成功优化，没有结果就是不赚不亏。
 ``` html
 <script defer>
@@ -311,6 +468,55 @@ js、css、html 采用webpack插件去压缩
   }
 </script>
 ```
+
+
+### 资源预加载
+因为主应用加载路由前，依赖这些接口的加载，会阻塞路由和子应用的加载。在请求接口等待服务器响应这段时间，**用matchPath匹配到当前路由提前执行资源加载**。
+#### 主应用路由预加载
+就是直接调用路由组件
+``` js
+function prefetchMainAppRoute(appRoutes: any[]) {
+  appRoutes.forEach(el => {
+    // https://github.com/remix-run/react-router/blob/fbb6358dd7f47eedd55d0b63e0725ac335d28bde/packages/react-router/modules/Route.js#L41
+    const match = matchPath(location.pathname, el);
+
+    if (match && el && el.routeMatchPrefetch) {
+      try {
+        console.log('[prefetch main route chunk]', el.path);
+        el?.component?.();
+      } catch (e) {
+        console.log('[prefetch main route chunk error]', el.path);
+      }
+    }
+  });
+}
+```
+#### 子应用路由预加载
+获取菜单接口后，提前加载匹配的子应用入口html
+``` js
+function prefetchloadAppResource(appInfo: { entry: string; name: string }) {
+  Garfish.registerApp(appInfo);
+  (Garfish.loader as any)?.forceCaches?.add(appInfo.entry);
+  loadAppResourceNow(Garfish.loader, appInfo);
+}
+
+function prefetchSubAppRoute() {
+  getMenu().forEach(el => {
+    const match = matchPath(location.pathname, el as any);
+    if (match && el && el.appEntry && el.appName) {
+      console.log('[prefetch subApp route chunk]', el);
+      prefetchloadAppResource({
+        entry: el.appEntry,
+        name: el.appName,
+      });
+    }
+  });
+}
+```
+
+### 业务优化
+- 优化强依赖请求，例如BFF合并接口等
+- 老业务代码下线
 
 ## 治理
 根据监控平台排查问题
