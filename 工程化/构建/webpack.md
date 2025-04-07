@@ -94,33 +94,6 @@
 
 ---
 
-### 清空旧打包文件
-* `npm i -D clean-webpack-plugin`
-``` js
-const {CleanWebpackPlugin} = require('clean-webpack-plugin')
-module.exports = {
-  // ...省略其他配置
-  plugins:[
-    // 清除旧的 js 打包文件
-    new CleanWebpackPlugin()
-  ]
-}
-```
-* 参数 `cleanOnceBeforeBuildPatterns`：
-  ``` js
-  //webpack.config.js
-  module.exports = {
-      //...
-      plugins: [
-          new CleanWebpackPlugin({
-              cleanOnceBeforeBuildPatterns:['**/*', '!dll', '!dll/**'] //不删除dll目录下的文件
-          })
-      ]
-  }
-  ```
-
----
-
 ### 处理 HTML
 每次打包 js 文件会有 hash 值，用于在自动引入打包后的 js 文件
 * `npm i -D html-webpack-plugin`
@@ -171,6 +144,34 @@ module.exports = {
         filename: 'header.html',
         chunks: ['header'] // 与入口文件对应的模块名
       }),
+    ]
+  }
+  ```
+
+* 使用钩子修改 HTML 内容
+  ``` js
+  class MyPlugin {
+    apply(compiler) {
+      compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+        HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
+          'MyPlugin',
+          (data, cb) => {
+            // 修改生成的 HTML
+            data.html = data.html.replace(
+              '</body>',
+              '<script>console.log("注入的内容")</script></body>'
+            );
+            cb(null, data);
+          }
+        );
+      });
+    }
+  }
+
+  module.exports = {
+    plugins: [
+      new HtmlWebpackPlugin(),
+      new MyPlugin()
     ]
   }
   ```
@@ -490,23 +491,6 @@ module.exports = {
 ---
 
 ## Webpack 优化
-
-### 量化
-`speed-measure-webpack-plugin` 插件可以测量各个插件和loader所花费的时间
-* `npm i -D speed-measure-webpack-plugin`
-  ``` js
-  //webpack.config.js
-  const SpeedMeasurePlugin = require("speed-measure-webpack-plugin");
-  const smp = new SpeedMeasurePlugin();
-
-  const config = {
-      //...webpack配置
-  }
-
-  module.exports = smp.wrap(config);
-  ```
-
----
 
 ### exclude/include
 * 可以通过 exclude、include 配置来确保转译尽可能少的文件。顾名思义，exclude 指定要排除的文件，include 指定要包含的文件。
