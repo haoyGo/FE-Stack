@@ -5,5 +5,4 @@
 # OS
 .DS_Store
 
-# webpack
-/构建/webpack
+.history
