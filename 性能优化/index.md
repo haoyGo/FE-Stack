@@ -1,3 +1,5 @@
+优化效果：主应用打包体积为 3.3M，子应用平均打包体积为1.3M。FMP 优化为1.5s，LCP优化为1.9s。
+
 ## 指标
 FMP(First Contentful Paint)
 LCP(Largest Contentful Paint )
