@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+  </defs>
+  
+  <!-- 标题 -->
+  <text x="400" y="40" text-anchor="middle" font-size="24" font-weight="bold">Vue2 响应式系统工作流程</text>
+  
+  <!-- 依赖收集阶段 -->
+  <rect x="50" y="80" width="700" height="300" rx="10" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="2"/>
+  <text x="100" y="110" font-size="18" font-weight="bold">依赖收集阶段</text>
+  
+  <!-- 依赖收集流程 -->
+  <rect x="100" y="130" width="160" height="60" rx="5" fill="#e3f2fd" stroke="#90caf9" stroke-width="2"/>
+  <text x="180" y="165" text-anchor="middle" font-size="14">组件渲染</text>
+  
+  <rect x="320" y="130" width="160" height="60" rx="5" fill="#e3f2fd" stroke="#90caf9" stroke-width="2"/>
+  <text x="400" y="165" text-anchor="middle" font-size="14">创建Watcher</text>
+  
+  <rect x="100" y="240" width="160" height="60" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="2"/>
+  <text x="180" y="275" text-anchor="middle" font-size="14">访问响应式数据</text>
+  
+  <rect x="320" y="240" width="160" height="60" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="2"/>
+  <text x="400" y="275" text-anchor="middle" font-size="14">触发getter</text>
+  
+  <rect x="540" y="240" width="160" height="60" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="2"/>
+  <text x="620" y="275" text-anchor="middle" font-size="14">收集依赖</text>
+  
+  <!-- 派发更新阶段 -->
+  <rect x="50" y="420" width="700" height="300" rx="10" fill="#fafafa" stroke="#e0e0e0" stroke-width="2"/>
+  <text x="100" y="450" font-size="18" font-weight="bold">派发更新阶段</text>
+  
+  <!-- 更新派发流程 -->
+  <rect x="100" y="470" width="160" height="60" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="2"/>
+  <text x="180" y="505" text-anchor="middle" font-size="14">数据变更</text>
+  
+  <rect x="320" y="470" width="160" height="60" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="2"/>
+  <text x="400" y="505" text-anchor="middle" font-size="14">触发setter</text>
+  
+  <rect x="100" y="580" width="160" height="60" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="2"/>
+  <text x="180" y="615" text-anchor="middle" font-size="14">通知Watcher更新</text>
+  
+  <rect x="320" y="580" width="160" height="60" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="2"/>
+  <text x="400" y="615" text-anchor="middle" font-size="14">进入更新队列</text>
+  
+  <rect x="540" y="580" width="160" height="60" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="2"/>
+  <text x="620" y="615" text-anchor="middle" font-size="14">nextTick执行更新</text>
+  
+  <!-- 连接线和箭头 -->
+  <path d="M260,160 L320,160" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M180,190 L180,240" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M260,270 L320,270" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M480,270 L540,270" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  
+  <path d="M260,500 L320,500" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M400,530 L400,580" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M260,610 L320,610" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  <path d="M480,610 L540,610" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  
+  <!-- 图例说明 -->
+  <text x="100" y="750" font-size="14" font-weight="bold">更新优先级：</text>
+  <text x="120" y="775" font-size="12">computed-watcher > normal-watcher > render-watcher</text>
+</svg>

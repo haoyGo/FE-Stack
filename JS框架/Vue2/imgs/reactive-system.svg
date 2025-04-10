@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="800" height="600" fill="#f8f9fa"/>
+  
+  <!-- 标题 -->
+  <text x="400" y="50" text-anchor="middle" font-size="24" font-weight="bold" fill="#2c3e50">Vue2 响应式系统架构</text>
+  
+  <!-- Observer模块 -->
+  <g transform="translate(150,150)">
+    <rect width="200" height="120" rx="10" fill="#42b983" opacity="0.9"/>
+    <text x="100" y="30" text-anchor="middle" fill="white" font-weight="bold">Observer (数据劫持层)</text>
+    <text x="20" y="60" fill="white" font-size="12">- defineProperty劫持</text>
+    <text x="20" y="80" fill="white" font-size="12">- 递归遍历对象属性</text>
+    <text x="20" y="100" fill="white" font-size="12">- 数组方法重写</text>
+  </g>
+  
+  <!-- Dep模块 -->
+  <g transform="translate(450,150)">
+    <rect width="200" height="120" rx="10" fill="#e74c3c" opacity="0.9"/>
+    <text x="100" y="30" text-anchor="middle" fill="white" font-weight="bold">Dep (依赖管理层)</text>
+    <text x="20" y="60" fill="white" font-size="12">- 管理Watcher订阅者</text>
+    <text x="20" y="80" fill="white" font-size="12">- 依赖收集(depend)</text>
+    <text x="20" y="100" fill="white" font-size="12">- 派发更新(notify)</text>
+  </g>
+  
+  <!-- Watcher模块 -->
+  <g transform="translate(300,350)">
+    <rect width="200" height="150" rx="10" fill="#3498db" opacity="0.9"/>
+    <text x="100" y="30" text-anchor="middle" fill="white" font-weight="bold">Watcher (订阅者层)</text>
+    <text x="20" y="60" fill="white" font-size="12">- computed-watcher</text>
+    <text x="20" y="80" fill="white" font-size="12">- normal-watcher</text>
+    <text x="20" y="100" fill="white" font-size="12">- render-watcher</text>
+    <text x="20" y="120" fill="white" font-size="12">- 异步更新队列</text>
+  </g>
+  
+  <!-- 连接箭头和说明 -->
+  <!-- Observer -> Dep -->
+  <path d="M350,210 L450,210" stroke="#2c3e50" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="400" y="200" text-anchor="middle" fill="#2c3e50" font-size="12">通知依赖更新</text>
+  
+  <!-- Dep -> Watcher -->
+  <path d="M550,270 L500,350" stroke="#2c3e50" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="550" y="310" text-anchor="middle" fill="#2c3e50" font-size="12">派发更新</text>
+  
+  <!-- Watcher -> Observer -->
+  <path d="M300,350 L250,270" stroke="#2c3e50" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="250" y="310" text-anchor="middle" fill="#2c3e50" font-size="12">订阅数据变化</text>
+  
+  <!-- 箭头定义 -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2c3e50"/>
+    </marker>
+  </defs>
+</svg>
