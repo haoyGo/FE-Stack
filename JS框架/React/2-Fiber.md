@@ -9,7 +9,27 @@
 
 ## 二、Fiber 节点结构
 
-### 1. 数据结构
+### 1. Fiber 数据结构
+Fiber 是 React 16 中新的协调引擎。它的主要目标是支持虚拟 DOM 的增量渲染。
+
+Fiber 节点包含以下几个重要部分：
+#### 静态信息
+- 保存组件的基本信息
+- 包括组件类型tag、key等
+- 对应真实DOM节点 stateNode
+#### 节点关系
+- 构建树形结构
+- 通过 return、child、sibling 连接
+- 形成单链表树结构
+#### 动态工作
+- 保存组件状态 memoizedState
+- 记录更新信息 updateQueue
+- 存储副作用标记 flags
+#### 调度相关
+- 优先级管理 lanes
+- 任务调度信息
+- 时间切片控制
+
 ```javascript
 type Fiber = {
   // 静态数据结构
@@ -48,7 +68,7 @@ type Fiber = {
 - **current树**：当前渲染到屏幕上的Fiber树，保存着当前UI状态
 - **workInProgress树**：正在内存中构建的新Fiber树，保存着即将更新的UI状态
 - **alternate属性**：两棵树的对应节点相互引用，实现快速切换
-- **指针切换**：构建完成后只需修改root.current指针即可完成更新，实现无闪烁UI更新
+- **指针切换**：构建完成后只需修改**fiberRoot.current**指针即可完成更新，实现无闪烁UI更新
 
 #### 双缓存工作流程
 ```mermaid
@@ -177,6 +197,24 @@ function completeUnitOfWork(fiber) {
 
 ### 2. 可中断的更新过程
 #### 2.1 render阶段（可中断）
+
+render阶段主要由 beginWork 和 completeWork 两个阶段组成,它们分工如下:
+
+**beginWork阶段**
+- 向下遍历处理,从根节点一直到叶子节点
+- 主要负责创建或复用Fiber节点
+- 计算组件的状态更新
+- 对比新旧props确定子树是否需要更新
+- 返回子Fiber节点作为下一个工作单元
+
+**completeWork阶段**
+- 向上归并处理,从叶子节点返回到根节点
+- 创建或更新真实DOM节点
+- 处理组件的props,如事件绑定、样式更新等
+- 收集当前节点的副作用,并向上冒泡
+- 准备commit阶段需要的副作用链表
+
+两个阶段配合形成深度优先遍历,共同完成Fiber树的构建和更新工作。
 ```javascript
 // beginWork核心逻辑
 function beginWork(fiber) {
@@ -229,6 +267,28 @@ function bubbleProperties(fiber) {
 ```
 
 #### 2.2 commit阶段（不可中断）
+
+commit阶段是React更新过程的最后阶段，主要负责将变更提交到DOM。该阶段必须同步执行且不可中断，原因如下：
+
+1. **DOM操作的原子性**
+- DOM操作必须同步完成以保持视图一致性
+- 中断可能导致DOM处于不完整状态
+- 用户可能看到更新中间态
+
+2. **生命周期钩子的连续性**
+- componentDidMount/Update等钩子需要连续执行
+- 确保状态更新和DOM操作的同步
+- 保证副作用执行的可预测性
+
+3. **三个子阶段**
+- before mutation: DOM变更前准备工作
+- mutation: 执行DOM操作
+- layout: 执行DOM操作后的收尾工作
+
+4. **执行时机**
+- 在render阶段完成后立即执行
+- 优先级高于其他任务
+- 确保视图及时更新
 ```javascript
 function commitRoot() {
   // 1. DOM变更前阶段
@@ -266,6 +326,9 @@ function commitMutationEffects(finishedWork) {
   }
 }
 ```
+
+> completeWork和commit阶段对DOM的操作有明显区别：completeWork阶段主要是在内存中创建或更新DOM节点，这些变更并不会立即渲染到页面上，而是先保存在内存中。commit阶段才是真正将这些DOM变更提交到浏览器进行渲染，这个阶段的操作会直接影响页面显示。这种设计可以让React在completeWork阶段收集所有DOM变更，然后在commit阶段一次性提交，避免频繁的页面重排和重绘，提高渲染性能。
+
 
 ### 3. 优先级调度
 ```mermaid
@@ -315,6 +378,22 @@ function getCurrentPriorityLevel() {
 ```
 
 #### 3.2 调度实现
+React的调度实现主要包含以下几个关键环节:
+
+1. **优先级判断与任务分发**
+- 根据事件类型和更新来源确定优先级
+- 将任务分发到不同的调度队列
+- 高优先级任务可以打断低优先级任务
+
+2. **时间切片调度**
+- 将长任务切分成小片执行
+- 通过requestIdleCallback或自定义scheduler实现
+- 保证主线程不被长时间占用
+
+3. **任务饥饿处理**
+- 低优先级任务长时间得不到执行会超时
+- 超时后会提升任务优先级
+- 确保所有任务最终都能得到处理
 ```javascript
 // 调度入口函数
 function scheduleUpdateOnFiber(fiber, lane) {
@@ -385,7 +464,7 @@ function markStarvedLanesAsExpired(root, currentTime) {
 - PassiveEffect：异步执行（如useEffect）
 
 ### 2. 收集过程
-- 在completeWork阶段收集
+- **在completeWork阶段收集**
 - 通过subtreeFlags向上冒泡
 - 形成完整副作用链表
 
