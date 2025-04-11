@@ -5,6 +5,11 @@
 ### Hook 链表结构
 React 使用链表结构来管理 Hook，每个函数组件对应的 Fiber 节点都有一个 `memoizedState` 属性，指向该组件的 Hook 链表。
 
+**链表结构详解**：
+1. 每个Hook都是一个链表节点，通过`next`指针连接
+2. 链表顺序严格对应Hook的调用顺序
+3. React通过这个链表来追踪Hook的状态和更新
+
 ```js
 // Hook 类型定义
 type Hook = {
@@ -13,6 +18,19 @@ type Hook = {
   baseQueue: Update<any, any> | null, // 更新队列
   queue: UpdateQueue<any, any> | null, // 更新队列
   next: Hook | null  // 下一个 Hook
+}
+```
+
+**链表操作示例**：
+```js
+// 组件中的Hook调用
+function Example() {
+  const [count, setCount] = useState(0); // Hook节点1
+  const [name, setName] = useState('');  // Hook节点2
+  useEffect(() => {});                  // Hook节点3
+  
+  // 对应的Hook链表：
+  // Hook1 -> Hook2 -> Hook3 -> null
 }
 ```
 
@@ -50,7 +68,7 @@ function mountState<S>(initialState: S): [S, Dispatch<BasicStateAction<S>>] {
     currentlyRenderingFiber,
     queue
   ): any));
-  
+  b
   // 6. 返回当前状态和更新函数
   return [hook.memoizedState, dispatch];
 }
@@ -66,7 +84,7 @@ function updateState<S>(initialState: S): [S, Dispatch<BasicStateAction<S>>] {
   // 1. 获取当前Hook
   const hook = updateWorkInProgressHook();
   
-  // 2. 获取更新队列
+  // 2. 获取更新队列b
   const queue = hook.queue;
   
   // 3. 获取当前reducer
@@ -164,13 +182,38 @@ function updateEffect(
 
 ## 调度流程
 
-1. **渲染阶段**：构建 Hook 链表，收集 effect
-2. **提交阶段**：执行 effect 和清理函数
-3. **清理阶段**：执行上次 effect 的清理函数
+1. **渲染阶段**：
+   - 构建 Hook 链表
+   - 收集 effect
+   - 确定哪些effect需要执行(通过依赖比较)
+   
+2. **提交阶段**：
+   - 执行本次渲染的effect创建函数
+   - 保存返回的清理函数
+   - 对于layout effect，同步执行
+   
+3. **清理阶段**：
+   - 执行上次effect的清理函数
+   - 只在依赖项变化或组件卸载时执行
+   
+**流程图示例**：
+```
+[组件渲染] → [构建Hook链表] → [收集effect]
+    ↓
+[React提交更新] → [执行effect创建函数] → [保存清理函数]
+    ↓
+[组件更新/卸载] → [执行上次清理函数]
+```
 
 ## 依赖收集机制
 
 React 使用 Object.is 比较依赖项数组中的每个值，如果发现变化则重新执行 effect。
+
+**依赖比较原理**：
+1. 首次渲染时，保存初始依赖项
+2. 后续渲染时，逐个比较新旧依赖项
+3. 使用Object.is进行严格相等比较
+4. 依赖项变化会触发effect重新执行
 
 ```js
 function areHookInputsEqual(
@@ -181,7 +224,13 @@ function areHookInputsEqual(
     return false;
   }
 
-  for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
+  // 依赖项数量变化直接返回false
+  if (nextDeps.length !== prevDeps.length) {
+    return false;
+  }
+
+  // 逐个比较依赖项
+  for (let i = 0; i < prevDeps.length; i++) {
     if (Object.is(nextDeps[i], prevDeps[i])) {
       continue;
     }
@@ -190,6 +239,11 @@ function areHookInputsEqual(
   return true;
 }
 ```
+
+**最佳实践**：
+1. 包含所有effect中用到的值
+2. 对于对象/数组，考虑使用useMemo/useCallback
+3. 空数组[]表示effect只运行一次
 
 ## 闭包陷阱
 

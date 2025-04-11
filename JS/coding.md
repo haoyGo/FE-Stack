@@ -298,9 +298,24 @@ const debounce = (fn, millSec) => {
 const throttle = (fn, millSec) => {
   const now = Date.now();
   return function (...args) {
+    const context = this
     if (Date.now() - now >= millSec) {
       now = Date.now()
-      fn.apply(this, args)
+      return fn.apply(context, args)
+    }
+  }
+}
+
+// 定时器版
+const throttle = (fun, wait) => {
+  let timeout = null
+  return function (...args){
+    const context = this
+    if(!timeout){
+      timeout = setTimeout(() => {
+        fun.apply(context, args)
+        timeout = null
+      }, wait)
     }
   }
 }
