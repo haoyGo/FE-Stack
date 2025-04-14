@@ -112,7 +112,34 @@ if(cluster.isMaster){
 }
 ```
 
-![cluster](./imgs/cluster.png)
+```mermaid
+graph TB
+    subgraph Master进程
+        M[Master进程<br>TCP服务器]
+        LB[负载均衡器<br>Round-Robin]
+    end
+    
+    subgraph Worker进程
+        W1[Worker 1<br>HTTP服务器]
+        W2[Worker 2<br>HTTP服务器]
+        W3[Worker 3<br>HTTP服务器]
+        W4[Worker N<br>HTTP服务器]
+    end
+    
+    Client((客户端请求)) --> M
+    M --> LB
+    LB -->|IPC| W1
+    LB -->|IPC| W2
+    LB -->|IPC| W3
+    LB -->|IPC| W4
+    
+    style M fill:#f9f,stroke:#333,stroke-width:2px
+    style LB fill:#bbf,stroke:#333,stroke-width:2px
+    style W1 fill:#bfb,stroke:#333,stroke-width:2px
+    style W2 fill:#bfb,stroke:#333,stroke-width:2px
+    style W3 fill:#bfb,stroke:#333,stroke-width:2px
+    style W4 fill:#bfb,stroke:#333,stroke-width:2px
+```
 `cluster模块` 调用 `fork` 方法来创建子进程，该方法与 `child_process.fork`是同一个方法。
 `cluster模块` 采用的是经典的**主从模型**，`Cluster` 会创建一个 `master`，然后根据你指定的数量复制出多个子进程，可以使用 `cluster.isMaster` 属性判断当前进程是 `master` 还是 `worker(工作进程)`。由 `master` 进程来管理所有的子进程，**主进程不负责具体的任务处理，主要工作是负责调度和管理**。
 
