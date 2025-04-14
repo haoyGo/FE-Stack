@@ -32,9 +32,10 @@ class PromisePool {
         this.pool.push(promise);
       }
       // 等待并发池中的某个任务完成
-      await Promise.race(this.pool);
+      await Promise.race(this.pool); // 虽然Promise.race会在任意一个Promise完成时立即返回，但它并不会阻止其他Promise的执行。
     }
-    // 等待所有任务完成
+    // 加上这句可以确保所有任务都执行完成后才返回
+    // 去掉这句，如果 run 后面有其他代码，会在Promise.race执行完一个任务后就执行，而不会等待所有任务都执行完成
     return Promise.all(this.pool);
   }
 }
@@ -122,12 +123,17 @@ const createTask = (id) => {
   });
 };
 
-// 添加任务并获取结果
+// 添加任务
 for (let i = 0; i < 5; i++) {
-  queue.add(createTask(i)).then(result => {
-    console.log(`Task ${result} result`);
-  });
+  queue.add(createTask(i));
 }
+
+// 添加任务并获取结果
+// for (let i = 0; i < 5; i++) {
+//   queue.add(createTask(i)).then(result => {
+//     console.log(`Task ${result} result`);
+//   });
+// }
 ```
 
 ## 3. 基于计数器的并发控制
