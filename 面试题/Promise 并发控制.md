@@ -2,9 +2,9 @@
 
 在处理大量异步任务时，为了避免同时发起过多的请求导致系统负载过高，我们需要对并发数量进行控制。下面介绍三种常见的 Promise 并发控制实现方式。
 
-## 1. 基于 Promise.all 的并发控制
-
-这种方式通过将任务分批执行，每批次执行固定数量的任务。
+## 1. 基于 Promise.race 的并发控制
+原理：在到达并发限制数后，通过 **Promise.race**，依次交替执行任务。
+这种方式通过将任务分批执行，每批次执行**固定数量的任务**。
 
 ```javascript
 class PromisePool {
@@ -12,6 +12,7 @@ class PromisePool {
     this.max = max; // 最大并发数
     this.pool = []; // 并发池
     this.tasks = []; // 待执行的任务队列
+    this.results = []; // 任务执行结果
   }
 
   // 添加任务
@@ -21,22 +22,21 @@ class PromisePool {
 
   // 执行任务
   async run() {
-    while (this.tasks.length > 0) {
-      // 当并发池未满时，将任务添加到并发池
-      while (this.pool.length < this.max && this.tasks.length > 0) {
-        const task = this.tasks.shift();
-        const promise = task().then(() => {
-          // 任务完成后从并发池中移除
-          this.pool.splice(this.pool.indexOf(promise), 1);
-        });
-        this.pool.push(promise);
+    for (const task of this.tasks) {
+      const p = task().then(res => {
+        this.pool.splice(this.pool.indexOf(p), 1);
+        this.results.push(res);
+        return res;
+      })
+      this.pool.push(p);
+      if (this.pool.length >= this.max) {
+        await Promise.race(this.pool);
       }
-      // 等待并发池中的某个任务完成
-      await Promise.race(this.pool); // 虽然Promise.race会在任意一个Promise完成时立即返回，但它并不会阻止其他Promise的执行。
     }
     // 加上这句可以确保所有任务都执行完成后才返回
     // 去掉这句，如果 run 后面有其他代码，会在Promise.race执行完一个任务后就执行，而不会等待所有任务都执行完成
-    return Promise.all(this.pool);
+    await Promise.all(this.pool);
+    return this.results;
   }
 }
 
@@ -49,7 +49,7 @@ const createTask = (id) => {
     console.log(`Task ${id} start`);
     setTimeout(() => {
       console.log(`Task ${id} end`);
-      resolve();
+      resolve(id);
     }, 1000);
   });
 };
@@ -64,8 +64,8 @@ pool.run();
 ```
 
 ## 2. 基于队列的并发控制
-
-这种方式通过维护一个任务队列，动态添加和执行任务。
+原理：**每次添加任务都会执行(run)**，在 run 中判断是否到达并大限制，进行限制。
+这种方式通过维护一个任务队列，**动态添加**和执行任务。
 
 ```javascript
 class TaskQueue {
@@ -94,8 +94,8 @@ class TaskQueue {
       return;
     }
 
-    this.count++;
     const { task, resolve, reject } = this.queue.shift();
+    this.count++;
 
     try {
       const result = await task();
@@ -127,17 +127,10 @@ const createTask = (id) => {
 for (let i = 0; i < 5; i++) {
   queue.add(createTask(i));
 }
-
-// 添加任务并获取结果
-// for (let i = 0; i < 5; i++) {
-//   queue.add(createTask(i)).then(result => {
-//     console.log(`Task ${result} result`);
-//   });
-// }
 ```
 
 ## 3. 基于计数器的并发控制
-
+原理：跟第2种差不多。
 这种方式通过维护一个计数器来控制并发数。
 
 ```javascript
@@ -201,13 +194,3 @@ const run = async () => {
 
 run();
 ```
-
-以上三种实现方式各有特点：
-
-1. **Promise.all 方式**：适合任务数量固定，需要批量执行的场景。实现简单，但不够灵活。
-
-2. **队列方式**：适合动态添加任务的场景，可以方便地处理任务的执行结果。实现相对复杂，但更灵活。
-
-3. **计数器方式**：实现最为简洁，适合需要严格控制并发数的场景。可以保证同时执行的任务数不超过限制。
-
-选择哪种实现方式主要取决于具体的使用场景和需求。
