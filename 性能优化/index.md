@@ -1,10 +1,8 @@
-优化效果：主应用打包体积为 3.3M，子应用平均打包体积为1.3M。FMP 优化为1.5s，LCP优化为1.9s。
+UV(周总和): 1.55 K -> 1.21k，平均300
+PV(周总和): 52.47 K -> 47.18k，平均10k
+优化效果：主应用打包体积为 3.3M，子应用平均打包体积为1.3M。FMP 优化为1.5s，LCP优化为1.8s。
 
 ## 指标
-FMP(First Contentful Paint)
-LCP(Largest Contentful Paint )
-TTI (Time To Interactive)
-FMP、LCP、TTI、CLS、TBT
 
 ### 性能埋点
 **主要关注P75的FMP、LCP。**
