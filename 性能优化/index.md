@@ -385,7 +385,7 @@ js、css、html 采用webpack插件去压缩
 23个子应用，5M-14M都有，首屏3M-6M（br压缩后 600K-1.2M）
 
 ### 资源预请求
-> 在资源加载同时发起请求server接口，提早获取server接口的数据
+> 在资源加载同时发起请求server接口，提早获取server接口的数据。**FMP 2 -> 1.8**
 
 开平挂载菜单之前需要依赖几个server remote的数据，这些依赖的数据会阻塞菜单内容的渲染，所以应该提早发起请求，并行请求js资源请求和用户数据。
 整理开平主应用挂载路由所依赖的接口，prefetch 需要用到的接口，提前prefetch 菜单配置，提前渲染router。
@@ -471,7 +471,7 @@ js、css、html 采用webpack插件去压缩
 
 
 ### 资源预加载
-因为主应用加载路由前，依赖这些接口的加载，会阻塞路由和子应用的加载。在请求接口等待服务器响应这段时间，**用matchPath匹配到当前路由提前执行资源加载**。
+因为主应用加载路由前，依赖这些接口的加载，会阻塞路由和子应用的加载。在请求接口等待服务器响应这段时间，**用matchPath匹配到当前路由提前执行资源加载**。**LCP 2.5 -> 2.1**
 #### 主应用路由预加载
 就是直接调用路由组件
 ``` js
@@ -492,7 +492,7 @@ function prefetchMainAppRoute(appRoutes: any[]) {
 }
 ```
 #### 子应用路由预加载
-获取菜单接口后，提前加载匹配的子应用入口html
+获取菜单接口后，提前加载匹配的子应用入口html。剩余菜单通过 Gafish preload 处理
 ``` js
 function prefetchloadAppResource(appInfo: { entry: string; name: string }) {
   Garfish.registerApp(appInfo);
@@ -515,7 +515,7 @@ function prefetchSubAppRoute() {
 ```
 
 ### 业务优化
-- 优化强依赖请求，例如BFF合并接口等
+- 请求链路优化：优化强依赖请求 **FMP 1.8-1.5**
 - 老业务代码下线
 
 ## 治理
