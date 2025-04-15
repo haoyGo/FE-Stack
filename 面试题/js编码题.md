@@ -133,7 +133,7 @@
   console.log(copy)
 
   // 4. structuredClone，新API
-
+  // https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone
   ```
 
   深拷贝原理（lodash）
