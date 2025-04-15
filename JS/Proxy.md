@@ -40,12 +40,16 @@ function reactive(target) {
   return new Proxy(target, {
     get(obj, prop) {
       track(obj, prop); // 追踪依赖
-      return Reflect.get(...arguments);
+      const res = Reflect.get(...arguments)
+      return isObject(res) ? reactive(res) : res    
     },
     set(obj, prop, value) {
-      Reflect.set(...arguments);
-      trigger(obj, prop); // 触发更新
-      return true;
+      const oldValue = obj[prop]
+      const result = Reflect.set(...arguments)
+      if (hasChanged(value, oldValue)) {
+        trigger(target, key) // 触发更新
+      }
+      return result
     }
   });
 }
