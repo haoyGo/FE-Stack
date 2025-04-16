@@ -50,12 +50,7 @@ console.log(flatten_unique_sort(arr))
 // reduce 方式
 function flat(arr, depth = 1) {
   return depth > 0
-    ? arr.reduce((acc, cur) => {
-      if (Array.isArray(cur)) {
-          return [...acc, ...flat(cur, depth-1)]
-      }
-      return [...acc, cur]
-    } , [])
+    ? arr.reduce((acc, cur) => acc.concat(Array.isArray(cur) ? flat(cur, depth-1) : cur), [])
     : arr
 }
 

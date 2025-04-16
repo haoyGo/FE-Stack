@@ -32,6 +32,7 @@
         }
     }
 
+    arr.length = count
     return count
   }
   ```
