@@ -1123,6 +1123,7 @@ function climbStairs(n) {
 **问题描述**：给定n个物品，每个物品有重量和价值两个属性。在总重量不超过背包容量的情况下，选择物品使得总价值最大。
 
 **解题思路**：使用二维数组dp[i][j]表示前i个物品放入容量为j的背包的最大价值。
+状态转移方程`dp[i][j] = max(dp[i-1][j], dp[i-1][j-w[i]] + v[i])`来求解。这个方程的含义是：当前状态的最大价值等于不放入第i个物品的最大价值和放入第i个物品后的最大价值中的较大值。
 
 ```javascript
 function knapsack(weights, values, capacity) {
