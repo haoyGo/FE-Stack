@@ -23,7 +23,7 @@
   ``` javascript
   const removeDuplicates = (arr) => {
     const len = arr.length
-    if (len < 2) return len
+    if (len <= 1) return len
 
     let count = 1
     for (let i=1; i<len; ++i) {

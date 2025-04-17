@@ -327,6 +327,244 @@ function throttle2(fn, delay) {
 }
 ```
 
+### 6. 二叉树遍历 【难度：中】【频率：高】
+
+**问题描述**：实现二叉树的前序、中序、后序遍历，包括递归和非递归实现。
+
+**解题思路**：
+- 前序遍历：根节点 -> 左子树 -> 右子树
+- 中序遍历：左子树 -> 根节点 -> 右子树
+- 后序遍历：左子树 -> 右子树 -> 根节点
+- 使用栈来实现非递归版本
+
+```javascript
+// 二叉树节点定义
+class TreeNode {
+  constructor(val) {
+    this.val = val;
+    this.left = null;
+    this.right = null;
+  }
+}
+
+// 递归实现
+class BinaryTree {
+  // 前序遍历
+  preorderTraversal(root) {
+    const result = [];
+    const preorder = (node) => {
+      if (!node) return;
+      result.push(node.val);
+      preorder(node.left);
+      preorder(node.right);
+    };
+    preorder(root);
+    return result;
+  }
+
+  // 中序遍历
+  inorderTraversal(root) {
+    const result = [];
+    const inorder = (node) => {
+      if (!node) return;
+      inorder(node.left);
+      result.push(node.val);
+      inorder(node.right);
+    };
+    inorder(root);
+    return result;
+  }
+
+  // 后序遍历
+  postorderTraversal(root) {
+    const result = [];
+    const postorder = (node) => {
+      if (!node) return;
+      postorder(node.left);
+      postorder(node.right);
+      result.push(node.val);
+    };
+    postorder(root);
+    return result;
+  }
+
+  // 非递归前序遍历
+  preorderIterative(root) {
+    const result = [];
+    const stack = [];
+    let current = root;
+
+    while (current || stack.length) {
+      while (current) {
+        result.push(current.val);
+        stack.push(current);
+        current = current.left;
+      }
+      current = stack.pop();
+      current = current.right;
+    }
+
+    return result;
+  }
+
+  // 非递归中序遍历
+  inorderIterative(root) {
+    const result = [];
+    const stack = [];
+    let current = root;
+
+    while (current || stack.length) {
+      while (current) {
+        stack.push(current);
+        current = current.left;
+      }
+      current = stack.pop();
+      result.push(current.val);
+      current = current.right;
+    }
+
+    return result;
+  }
+
+  // 非递归后序遍历
+  postorderIterative(root) {
+    const result = [];
+    const stack = [];
+    let current = root;
+    let lastVisited = null;
+
+    while (current || stack.length) {
+      while (current) {
+        stack.push(current);
+        current = current.left;
+      }
+      current = stack[stack.length - 1];
+      if (!current.right || current.right === lastVisited) {
+        result.push(current.val);
+        lastVisited = current;
+        stack.pop();
+        current = null;
+      } else {
+        current = current.right;
+      }
+    }
+
+    return result;
+  }
+}
+```
+
+### 7. 链表操作 【难度：中】【频率：高】
+
+**问题描述**：实现链表的基本操作，包括反转链表、检测环、找出中间节点等。
+
+**解题思路**：使用快慢指针、虚拟头节点等技巧来简化链表操作。
+
+```javascript
+class ListNode {
+  constructor(val) {
+    this.val = val;
+    this.next = null;
+  }
+}
+
+class LinkedList {
+  // 反转链表
+  reverseList(head) {
+    let prev = null;
+    let current = head;
+    
+    while (current) {
+      const next = current.next;
+      current.next = prev;
+      prev = current;
+      current = next;
+    }
+    
+    return prev;
+  }
+
+  // 检测环
+  hasCycle(head) {
+    if (!head || !head.next) return false;
+    
+    let slow = head;
+    let fast = head;
+    
+    while (fast && fast.next) {
+      slow = slow.next;
+      fast = fast.next.next;
+      if (slow === fast) return true;
+    }
+    
+    return false;
+  }
+
+  // 找出环的入口
+  detectCycle(head) {
+    if (!head || !head.next) return null;
+    
+    let slow = head;
+    let fast = head;
+    let hasCycle = false;
+    
+    while (fast && fast.next) {
+      slow = slow.next;
+      fast = fast.next.next;
+      if (slow === fast) {
+        hasCycle = true;
+        break;
+      }
+    }
+    
+    if (!hasCycle) return null;
+    
+    slow = head;
+    while (slow !== fast) {
+      slow = slow.next;
+      fast = fast.next;
+    }
+    
+    return slow;
+  }
+
+  // 找出中间节点
+  findMiddle(head) {
+    if (!head || !head.next) return head;
+    
+    let slow = head;
+    let fast = head;
+    
+    while (fast.next && fast.next.next) {
+      slow = slow.next;
+      fast = fast.next.next;
+    }
+    
+    return slow;
+  }
+
+  // 合并两个有序链表
+  mergeTwoLists(l1, l2) {
+    const dummy = new ListNode(0);
+    let current = dummy;
+    
+    while (l1 && l2) {
+      if (l1.val <= l2.val) {
+        current.next = l1;
+        l1 = l1.next;
+      } else {
+        current.next = l2;
+        l2 = l2.next;
+      }
+      current = current.next;
+    }
+    
+    current.next = l1 || l2;
+    return dummy.next;
+  }
+}
+```
+
 ### 5. 函数柯里化 【难度：中】【频率：中】
 
 **问题描述**：实现一个函数柯里化的通用方法。
@@ -501,19 +739,260 @@ function binarySearch(nums, target) {
 }
 ```
 
-### 5. 快速排序 【难度：中】【频率：中】
+### 5. 虚拟列表实现 【难度：中】【频率：高】
+
+**问题描述**：实现一个高性能的虚拟列表，用于展示大量数据时只渲染可视区域内的内容。
+
+**解题思路**：使用基于视口的渲染策略，结合IntersectionObserver或滚动事件来检测可视区域，实现DOM节点的回收和复用。
+
+```javascript
+class VirtualList {
+  constructor(options) {
+    this.containerHeight = options.containerHeight; // 容器高度
+    this.itemHeight = options.itemHeight; // 每项高度
+    this.bufferSize = options.bufferSize || 5; // 缓冲区大小
+    this.items = options.items || []; // 数据列表
+    this.container = null;
+    this.scrollTop = 0;
+    this.visibleCount = 0; // 可视区域能显示的数量
+    this.startIndex = 0; // 起始索引
+    this.endIndex = 0; // 结束索引
+    this.lastScrollTop = 0; // 上次滚动位置
+    this.scrollTicking = false; // 滚动节流标记
+  }
+
+  init(container) {
+    this.container = container;
+    this.visibleCount = Math.ceil(this.containerHeight / this.itemHeight);
+    this.container.style.height = `${this.containerHeight}px`;
+    this.container.style.overflow = 'auto';
+    this.container.style.position = 'relative';
+
+    // 创建总高度容器
+    const totalHeight = this.items.length * this.itemHeight;
+    const heightHolder = document.createElement('div');
+    heightHolder.style.height = `${totalHeight}px`;
+    heightHolder.style.position = 'relative';
+    this.container.appendChild(heightHolder);
+
+    // 监听滚动事件
+    this.container.addEventListener('scroll', this.handleScroll.bind(this));
+
+    // 初始渲染
+    this.updateVisibleItems();
+  }
+
+  handleScroll() {
+    if (!this.scrollTicking) {
+      requestAnimationFrame(() => {
+        this.updateVisibleItems();
+        this.scrollTicking = false;
+      });
+      this.scrollTicking = true;
+    }
+  }
+
+  updateVisibleItems() {
+    const scrollTop = this.container.scrollTop;
+    this.startIndex = Math.floor(scrollTop / this.itemHeight);
+    this.endIndex = this.startIndex + this.visibleCount + this.bufferSize;
+
+    // 确保索引在有效范围内
+    this.startIndex = Math.max(0, this.startIndex - this.bufferSize);
+    this.endIndex = Math.min(this.items.length, this.endIndex);
+
+    // 获取可视区域数据
+    const visibleData = this.items.slice(this.startIndex, this.endIndex);
+
+    // 更新DOM
+    this.render(visibleData);
+  }
+
+  render(visibleData) {
+    // 清空现有内容
+    const content = document.createElement('div');
+
+    visibleData.forEach((item, index) => {
+      const itemElement = document.createElement('div');
+      itemElement.style.position = 'absolute';
+      itemElement.style.top = `${(this.startIndex + index) * this.itemHeight}px`;
+      itemElement.style.height = `${this.itemHeight}px`;
+      itemElement.textContent = item; // 实际应用中这里可能需要更复杂的渲染逻辑
+      content.appendChild(itemElement);
+    });
+
+    // 使用新内容替换旧内容
+    const oldContent = this.container.querySelector('.virtual-list-content');
+    if (oldContent) {
+      this.container.replaceChild(content, oldContent);
+    } else {
+      this.container.appendChild(content);
+    }
+    content.className = 'virtual-list-content';
+  }
+}
+```
+
+### 6. 大文件上传 【难度：中】【频率：高】
+
+**问题描述**：实现一个支持大文件分片上传、断点续传的上传功能。
+
+**解题思路**：将大文件分片，计算文件指纹，维护上传进度，支持断点续传和文件完整性校验。
+
+```javascript
+class FileUploader {
+  constructor(options) {
+    this.file = null;
+    this.chunkSize = options.chunkSize || 2 * 1024 * 1024; // 分片大小
+    this.uploadedChunks = new Set(); // 已上传的分片
+    this.uploadingChunks = new Map(); // 正在上传的分片
+    this.maxConcurrent = options.maxConcurrent || 3; // 最大并发数
+  }
+
+  async uploadFile(file) {
+    this.file = file;
+    const fileHash = await this.calculateHash(file);
+    const chunks = this.createChunks(file);
+    
+    // 获取已上传的分片信息
+    const uploadedList = await this.getUploadedList(fileHash);
+    this.uploadedChunks = new Set(uploadedList);
+
+    // 上传所有分片
+    await this.uploadChunks(chunks, fileHash);
+
+    // 通知服务器合并分片
+    await this.mergeChunks(fileHash, chunks.length);
+  }
+
+  createChunks(file) {
+    const chunks = [];
+    let start = 0;
+
+    while (start < file.size) {
+      const end = Math.min(start + this.chunkSize, file.size);
+      chunks.push(file.slice(start, end));
+      start = end;
+    }
+
+    return chunks;
+  }
+
+  async calculateHash(file) {
+    // 这里使用一个简单的实现，实际项目中可能需要更复杂的文件指纹算法
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target.result;
+        const hash = this.simpleHash(result);
+        resolve(hash);
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  simpleHash(data) {
+    let hash = 0;
+    const view = new DataView(data);
+    for (let i = 0; i < view.byteLength; i += 4) {
+      hash = (hash << 5) - hash + view.getInt32(i, true);
+      hash |= 0;
+    }
+    return hash.toString(16);
+  }
+
+  async uploadChunks(chunks, fileHash) {
+    const uploadQueue = chunks.map((chunk, index) => ({
+      chunk,
+      index,
+      hash: fileHash + '-' + index
+    })).filter(item => !this.uploadedChunks.has(item.hash));
+
+    const upload = async (task) => {
+      const formData = new FormData();
+      formData.append('chunk', task.chunk);
+      formData.append('hash', task.hash);
+      formData.append('fileHash', fileHash);
+      formData.append('index', task.index);
+
+      try {
+        const response = await fetch('/upload/chunk', {
+          method: 'POST',
+          body: formData
+        });
+        if (response.ok) {
+          this.uploadedChunks.add(task.hash);
+          this.uploadingChunks.delete(task.hash);
+        }
+      } catch (error) {
+        // 上传失败，可以重试
+        console.error('Chunk upload failed:', error);
+      }
+    };
+
+    // 控制并发上传
+    while (uploadQueue.length > 0) {
+      if (this.uploadingChunks.size >= this.maxConcurrent) {
+        await Promise.race(this.uploadingChunks.values());
+        continue;
+      }
+      const task = uploadQueue.shift();
+      const promise = upload(task);
+      this.uploadingChunks.set(task.hash, promise);
+    }
+
+    // 等待所有分片上传完成
+    await Promise.all(this.uploadingChunks.values());
+  }
+
+  async getUploadedList(fileHash) {
+    try {
+      const response = await fetch(`/upload/check?fileHash=${fileHash}`);
+      if (response.ok) {
+        return await response.json();
+      }
+      return [];
+    } catch (error) {
+      console.error('Get uploaded list failed:', error);
+      return [];
+    }
+  }
+
+  async mergeChunks(fileHash, totalChunks) {
+    try {
+      const response = await fetch('/upload/merge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fileHash,
+          totalChunks
+        })
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Merge chunks failed:', error);
+      return false;
+    }
+  }
+}
+```
+
+### 7. 快速排序 【难度：中】【频率：中】
 
 **问题描述**：实现快速排序算法。
 
 **解题思路**：选择一个基准元素，将数组分为两部分，小于基准的放左边，大于基准的放右边，然后递归排序左右两部分。
 
 ```javascript
+// 基本实现
 function quickSort(arr) {
   if (arr.length <= 1) return arr;
   
   const pivot = arr[Math.floor(arr.length / 2)];
   const left = [];
-  const middle = [];
+  const middle = []; // 不能省
   const right = [];
   
   for (const item of arr) {
@@ -528,219 +1007,608 @@ function quickSort(arr) {
   
   return [...quickSort(left), ...middle, ...quickSort(right)];
 }
-```
 
-## 前端实际场景算法应用
-
-### 1. 虚拟列表实现 【难度：中高】【频率：中高】
-
-**问题描述**：实现一个虚拟列表，用于高效渲染大量数据。
-
-**解题思路**：只渲染可视区域内的元素，通过计算滚动位置动态更新渲染的元素。
-
-```javascript
-class VirtualList {
-  constructor(options) {
-    this.container = options.container;
-    this.itemHeight = options.itemHeight;
-    this.total = options.total;
-    this.buffer = options.buffer || 5; // 上下缓冲区域的数量
-    this.renderFunction = options.renderFunction;
-    
-    this.visibleCount = Math.ceil(this.container.clientHeight / this.itemHeight) + this.buffer * 2;
-    this.startIndex = 0;
-    this.endIndex = this.startIndex + this.visibleCount;
-    
-    this.init();
-  }
+// 优化1：原地分区（减少空间复杂度）
+function quickSortInPlace(arr, left = 0, right = arr.length - 1) {
+  if (left >= right) return arr;
   
-  init() {
-    // 创建内容容器
-    this.content = document.createElement('div');
-    this.content.style.position = 'relative';
-    this.content.style.height = `${this.total * this.itemHeight}px`;
-    this.container.appendChild(this.content);
-    
-    // 监听滚动事件
-    this.container.addEventListener('scroll', this.handleScroll.bind(this));
-    
-    // 初始渲染
-    this.render();
-  }
+  const pivotIndex = partition(arr, left, right);
+  quickSortInPlace(arr, left, pivotIndex - 1);
+  quickSortInPlace(arr, pivotIndex + 1, right);
   
-  handleScroll() {
-    const scrollTop = this.container.scrollTop;
-    const newStartIndex = Math.max(0, Math.floor(scrollTop / this.itemHeight) - this.buffer);
-    
-    if (newStartIndex !== this.startIndex) {
-      this.startIndex = newStartIndex;
-      this.endIndex = Math.min(this.total, this.startIndex + this.visibleCount);
-      this.render();
+  return arr;
+}
+
+function partition(arr, left, right) {
+  // 选择最右边的元素作为基准
+  const pivot = arr[right];
+  let i = left - 1;
+  
+  // 遍历从left到right-1的元素
+  // 原理:将小于等于pivot的元素都交换到数组左侧
+  // i记录已处理区域的边界,j遍历待处理区域
+  // 每当找到一个小于等于pivot的元素,就将其与i+1位置交换
+  // 这样可以保证i左侧的元素都小于等于pivot
+  for (let j = left; j < right; j++) {
+    if (arr[j] <= pivot) {
+      i++;
+      // 交换当前元素到已处理区域的下一个位置
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
   }
   
-  render() {
-    this.content.innerHTML = '';
-    
-    for (let i = this.startIndex; i < this.endIndex; i++) {
-      const item = this.renderFunction(i);
-      item.style.position = 'absolute';
-      item.style.top = `${i * this.itemHeight}px`;
-      item.style.height = `${this.itemHeight}px`;
-      item.style.width = '100%';
-      this.content.appendChild(item);
-    }
-  }
+  [arr[i + 1], arr[right]] = [arr[right], arr[i + 1]];
+  return i + 1;
+}
+
+// 随机选择基准元素
+function quickSortRandom(arr, left = 0, right = arr.length - 1) {
+  if (left >= right) return arr;
+  
+  // 随机选择基准元素
+  const randomIndex = Math.floor(Math.random() * (right - left + 1)) + left;
+  [arr[randomIndex], arr[right]] = [arr[right], arr[randomIndex]];
+  
+  const pivotIndex = partition(arr, left, right);
+  quickSortRandom(arr, left, pivotIndex - 1);
+  quickSortRandom(arr, pivotIndex + 1, right);
+  
+  return arr;
 }
 ```
 
-### 2. 大文件上传（分片上传）【难度：中高】【频率：中】
+## 动态规划
 
-**问题描述**：实现大文件分片上传功能，包括分片、上传和合并。
+### 1. 斐波那契数列 【难度：简单】【频率：高】
 
-**解题思路**：将大文件切分为小块，分别上传，最后在服务端合并。
+**问题描述**：计算斐波那契数列的第n个数。
+
+**解题思路**：使用动态规划避免递归的重复计算。
 
 ```javascript
-class FileUploader {
-  constructor(options) {
-    this.file = options.file;
-    this.chunkSize = options.chunkSize || 2 * 1024 * 1024; // 默认2MB一片
-    this.uploadUrl = options.uploadUrl;
-    this.mergeUrl = options.mergeUrl;
-    this.onProgress = options.onProgress || (() => {});
-    this.onSuccess = options.onSuccess || (() => {});
-    this.onError = options.onError || (() => {});
-    
-    this.chunks = this.createChunks();
-    this.uploadedChunks = 0;
+// 动态规划解法
+function fib(n) {
+  if (n <= 1) return n;
+  
+  let dp = [0, 1];
+  for (let i = 2; i <= n; i++) {
+    dp[i] = dp[i-1] + dp[i-2];
   }
   
-  createChunks() {
-    const chunks = [];
-    const totalChunks = Math.ceil(this.file.size / this.chunkSize);
+  return dp[n];
+}
+
+// 优化空间复杂度
+function fibOptimized(n) {
+  if (n <= 1) return n;
+  
+  let prev = 0;
+  let curr = 1;
+  
+  for (let i = 2; i <= n; i++) {
+    const next = prev + curr;
+    prev = curr;
+    curr = next;
+  }
+  
+  return curr;
+}
+```
+
+### 2. 爬楼梯 【难度：简单】【频率：高】
+
+**问题描述**：假设你正在爬楼梯，需要n阶才能到达楼顶。每次你可以爬1或2个台阶，问有多少种不同的方法可以爬到楼顶？
+
+**解题思路**：类似斐波那契数列，第n阶的方法数等于第n-1阶和第n-2阶方法数之和。
+
+```javascript
+function climbStairs(n) {
+  if (n <= 2) return n;
+  
+  let prev = 1;
+  let curr = 2;
+  
+  for (let i = 3; i <= n; i++) {
+    const next = prev + curr;
+    prev = curr;
+    curr = next;
+  }
+  
+  return curr;
+}
+```
+
+### 3. 0-1背包问题 【难度：中】【频率：中】
+
+**问题描述**：给定n个物品，每个物品有重量和价值两个属性。在总重量不超过背包容量的情况下，选择物品使得总价值最大。
+
+**解题思路**：使用二维数组dp[i][j]表示前i个物品放入容量为j的背包的最大价值。
+
+```javascript
+function knapsack(weights, values, capacity) {
+  const n = weights.length;
+  const dp = Array(n + 1).fill().map(() => Array(capacity + 1).fill(0));
+  
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= capacity; j++) {
+      if (weights[i-1] <= j) {
+        dp[i][j] = Math.max(
+          dp[i-1][j],
+          dp[i-1][j-weights[i-1]] + values[i-1]
+        );
+      } else {
+        dp[i][j] = dp[i-1][j];
+      }
+    }
+  }
+  
+  return dp[n][capacity];
+}
+```
+
+### 4. 最长递增子序列 【难度：中】【频率：高】
+
+**问题描述**：给定一个无序的整数数组，找到其中最长上升子序列的长度。
+
+**解题思路**：dp[i]表示以第i个数字结尾的最长上升子序列的长度。
+
+```javascript
+function lengthOfLIS(nums) {
+  if (!nums.length) return 0;
+  
+  const dp = Array(nums.length).fill(1);
+  let maxLen = 1;
+  
+  for (let i = 1; i < nums.length; i++) {
+    for (let j = 0; j < i; j++) {
+      if (nums[i] > nums[j]) {
+        dp[i] = Math.max(dp[i], dp[j] + 1);
+      }
+    }
+    maxLen = Math.max(maxLen, dp[i]);
+  }
+  
+  return maxLen;
+}
+
+// 优化解法：使用二分查找
+function lengthOfLISOptimized(nums) {
+  const tails = [];
+  
+  for (const num of nums) {
+    let left = 0;
+    let right = tails.length;
     
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * this.chunkSize;
-      const end = Math.min(start + this.chunkSize, this.file.size);
-      const chunk = this.file.slice(start, end);
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2);
+      if (tails[mid] < num) {
+        left = mid + 1;
+      } else {
+        right = mid;
+      }
+    }
+    
+    tails[left] = num;
+    if (left === tails.length) tails.push(num);
+  }
+  
+  return tails.length;
+}
+```
+
+### 5. 最长公共子序列 【难度：中】【频率：中】
+
+**问题描述**：给定两个字符串，求它们的最长公共子序列的长度。
+
+**解题思路**：使用二维dp数组，dp[i][j]表示text1的前i个字符与text2的前j个字符的最长公共子序列长度。
+
+```javascript
+function longestCommonSubsequence(text1, text2) {
+  const m = text1.length;
+  const n = text2.length;
+  const dp = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
+  
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (text1[i-1] === text2[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+      }
+    }
+  }
+  
+  return dp[m][n];
+}
+```
+
+## 字符串算法
+
+### 1. 字符串匹配（KMP算法）【难度：中高】【频率：中】
+
+**问题描述**：实现一个字符串匹配算法，在主串中查找模式串出现的位置。
+
+**解题思路**：使用KMP算法，通过构建部分匹配表（next数组）来避免不必要的比较。
+
+```javascript
+function getNext(pattern) {
+  const next = [0];
+  let prefix = 0;
+  let i = 1;
+  
+  while (i < pattern.length) {
+    if (pattern[i] === pattern[prefix]) {
+      prefix++;
+      next[i] = prefix;
+      i++;
+    } else if (prefix === 0) {
+      next[i] = 0;
+      i++;
+    } else {
+      prefix = next[prefix - 1];
+    }
+  }
+  
+  return next;
+}
+
+function kmp(text, pattern) {
+  if (!pattern) return 0;
+  
+  const next = getNext(pattern);
+  let i = 0; // 主串指针
+  let j = 0; // 模式串指针
+  
+  while (i < text.length) {
+    if (text[i] === pattern[j]) {
+      if (j === pattern.length - 1) {
+        return i - j;
+      }
+      i++;
+      j++;
+    } else if (j > 0) {
+      j = next[j - 1];
+    } else {
+      i++;
+    }
+  }
+  
+  return -1;
+}
+```
+
+### 2. 回文串判断 【难度：简单】【频率：高】
+
+**问题描述**：判断一个字符串是否是回文串，只考虑字母和数字字符，忽略大小写。
+
+**解题思路**：使用双指针从两端向中间移动，跳过非字母数字字符。
+
+```javascript
+function isPalindrome(s) {
+  // 将字符串转换为小写并移除非字母数字字符
+  s = s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  
+  let left = 0;
+  let right = s.length - 1;
+  
+  while (left < right) {
+    if (s[left] !== s[right]) {
+      return false;
+    }
+    left++;
+    right--;
+  }
+  
+  return true;
+}
+
+// 进阶：最长回文子串
+function longestPalindrome(s) {
+  if (s.length < 2) return s;
+  
+  let start = 0;
+  let maxLength = 1;
+  
+  function expandAroundCenter(left, right) {
+    while (left >= 0 && right < s.length && s[left] === s[right]) {
+      const currentLength = right - left + 1;
+      if (currentLength > maxLength) {
+        start = left;
+        maxLength = currentLength;
+      }
+      left--;
+      right++;
+    }
+  }
+  
+  for (let i = 0; i < s.length; i++) {
+    expandAroundCenter(i, i); // 奇数长度
+    expandAroundCenter(i, i + 1); // 偶数长度
+  }
+  
+  return s.substring(start, start + maxLength);
+}
+```
+
+### 3. 字符串压缩 【难度：简单】【频率：中】
+
+**问题描述**：实现基本的字符串压缩功能。例如，字符串"aabcccccaaa"会变为"a2b1c5a3"。
+
+**解题思路**：遍历字符串，统计连续相同字符的个数。
+
+```javascript
+function compressString(s) {
+  if (!s) return '';
+  
+  let result = '';
+  let count = 1;
+  let current = s[0];
+  
+  for (let i = 1; i <= s.length; i++) {
+    if (s[i] === current) {
+      count++;
+    } else {
+      result += current + count;
+      current = s[i];
+      count = 1;
+    }
+  }
+  
+  return result.length < s.length ? result : s;
+}
+```
+
+### 4. 字符串转整数 (atoi) 【难度：中】【频率：中】
+
+**问题描述**：实现一个atoi函数，将字符串转换为整数。需要处理前导空格、正负号、溢出等情况。
+
+**解题思路**：依次处理空格、符号和数字，注意边界条件和溢出情况。
+
+```javascript
+function myAtoi(s) {
+  let i = 0;
+  let result = 0;
+  let sign = 1;
+  
+  // 处理前导空格
+  while (s[i] === ' ') {
+    i++;
+  }
+  
+  // 处理正负号
+  if (s[i] === '+' || s[i] === '-') {
+    sign = s[i] === '+' ? 1 : -1;
+    i++;
+  }
+  
+  // 处理数字
+  while (i < s.length && /\d/.test(s[i])) {
+    result = result * 10 + (s[i] - '0');
+    
+    // 处理溢出
+    if (sign === 1 && result > 2147483647) {
+      return 2147483647;
+    }
+    if (sign === -1 && result > 2147483648) {
+      return -2147483648;
+    }
+    
+    i++;
+  }
+  
+  return sign * result;
+}
+```
+
+### 5. 最长公共前缀 【难度：简单】【频率：高】
+
+**问题描述**：编写一个函数来查找字符串数组中的最长公共前缀。
+
+**解题思路**：可以使用水平扫描或垂直扫描方法。
+
+```javascript
+// 水平扫描法
+function longestCommonPrefix(strs) {
+  if (!strs.length) return '';
+  
+  let prefix = strs[0];
+  
+  for (let i = 1; i < strs.length; i++) {
+    while (strs[i].indexOf(prefix) !== 0) {
+      prefix = prefix.substring(0, prefix.length - 1);
+      if (!prefix) return '';
+    }
+  }
+  
+  return prefix;
+}
+
+// 垂直扫描法
+function longestCommonPrefix2(strs) {
+  if (!strs.length) return '';
+  
+  for (let i = 0; i < strs[0].length; i++) {
+    const char = strs[0][i];
+    for (let j = 1; j < strs.length; j++) {
+      if (i === strs[j].length || strs[j][i] !== char) {
+        return strs[0].substring(0, i);
+      }
+    }
+  }
+  
+  return strs[0];
+}
+```
+
+## 树相关算法
+
+### 1. 二叉树的遍历 【难度：简单】【频率：高】
+
+**问题描述**：实现二叉树的前序、中序、后序遍历。
+
+**解题思路**：可以使用递归或迭代的方式实现三种遍历方式。
+
+```javascript
+class TreeNode {
+  constructor(val) {
+    this.val = val;
+    this.left = null;
+    this.right = null;
+  }
+}
+
+// 递归实现
+function preorderTraversal(root) {
+  const result = [];
+  
+  function traverse(node) {
+    if (!node) return;
+    
+    result.push(node.val); // 前序：根-左-右
+    traverse(node.left);
+    traverse(node.right);
+  }
+  
+  traverse(root);
+  return result;
+}
+
+function inorderTraversal(root) {
+  const result = [];
+  
+  function traverse(node) {
+    if (!node) return;
+    
+    traverse(node.left);
+    result.push(node.val); // 中序：左-根-右
+    traverse(node.right);
+  }
+  
+  traverse(root);
+  return result;
+}
+
+function postorderTraversal(root) {
+  const result = [];
+  
+  function traverse(node) {
+    if (!node) return;
+    
+    traverse(node.left);
+    traverse(node.right);
+    result.push(node.val); // 后序：左-右-根
+  }
+  
+  traverse(root);
+  return result;
+}
+
+// 迭代实现（以前序遍历为例）
+function preorderIterative(root) {
+  if (!root) return [];
+  
+  const result = [];
+  const stack = [root];
+  
+  while (stack.length) {
+    const node = stack.pop();
+    result.push(node.val);
+    
+    // 先压入右子节点，再压入左子节点，这样出栈时就是先左后右
+    if (node.right) stack.push(node.right);
+    if (node.left) stack.push(node.left);
+  }
+  
+  return result;
+}
+```
+
+### 2. 二叉树的层序遍历 【难度：中】【频率：高】
+
+**问题描述**：从上到下按层打印二叉树，同一层的节点按从左到右的顺序打印。
+
+**解题思路**：使用队列实现广度优先搜索。
+
+```javascript
+function levelOrder(root) {
+  if (!root) return [];
+  
+  const result = [];
+  const queue = [root];
+  
+  while (queue.length) {
+    const level = [];
+    const size = queue.length;
+    
+    for (let i = 0; i < size; i++) {
+      const node = queue.shift();
+      level.push(node.val);
       
-      chunks.push({
-        index: i,
-        file: new File([chunk], this.file.name, { type: this.file.type }),
-        size: chunk.size
-      });
+      if (node.left) queue.push(node.left);
+      if (node.right) queue.push(node.right);
     }
     
-    return chunks;
+    result.push(level);
   }
   
-  async upload() {
-    try {
-      const uploadPromises = this.chunks.map(chunk => this.uploadChunk(chunk));
-      await Promise.all(uploadPromises);
-      await this.mergeChunks();
-      this.onSuccess();
-    } catch (error) {
-      this.onError(error);
-    }
-  }
-  
-  async uploadChunk(chunk) {
-    const formData = new FormData();
-    formData.append('file', chunk.file);
-    formData.append('index', chunk.index);
-    formData.append('filename', this.file.name);
-    formData.append('total', this.chunks.length);
-    
-    const response = await fetch(this.uploadUrl, {
-      method: 'POST',
-      body: formData
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Upload failed for chunk ${chunk.index}`);
-    }
-    
-    this.uploadedChunks++;
-    this.onProgress(this.uploadedChunks / this.chunks.length);
-    
-    return response.json();
-  }
-  
-  async mergeChunks() {
-    const response = await fetch(this.mergeUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        filename: this.file.name,
-        total: this.chunks.length
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Merge chunks failed');
-    }
-    
-    return response.json();
-  }
+  return result;
 }
 ```
 
-### 3. 图片懒加载 【难度：简单】【频率：中】
+### 3. 二叉树的最大深度 【难度：简单】【频率：高】
 
-**问题描述**：实现图片懒加载功能，只有当图片进入可视区域时才加载。
+**问题描述**：计算二叉树的最大深度（根节点到最远叶子节点的最长路径上的节点数）。
 
-**解题思路**：使用IntersectionObserver API或监听滚动事件，判断图片是否进入可视区域。
+**解题思路**：可以使用递归或迭代的方式，这里展示递归解法。
 
 ```javascript
-// 方法1：使用IntersectionObserver API
-function lazyLoadImages() {
-  const images = document.querySelectorAll('img[data-src]');
+function maxDepth(root) {
+  if (!root) return 0;
   
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const img = entry.target;
-        img.src = img.dataset.src;
-        img.removeAttribute('data-src');
-        observer.unobserve(img);
-      }
-    });
-  });
+  const leftDepth = maxDepth(root.left);
+  const rightDepth = maxDepth(root.right);
   
-  images.forEach(img => observer.observe(img));
+  return Math.max(leftDepth, rightDepth) + 1;
 }
+```
 
-// 方法2：使用滚动事件
-function lazyLoadImagesLegacy() {
-  const images = document.querySelectorAll('img[data-src]');
+### 4. 路径总和 【难度：简单】【频率：中】
+
+**问题描述**：判断二叉树中是否存在根节点到叶子节点的路径，使得路径上所有节点值相加等于目标和。
+
+**解题思路**：使用递归，每次减去当前节点的值，判断叶子节点时是否剩余为0。
+
+```javascript
+function hasPathSum(root, targetSum) {
+  if (!root) return false;
   
-  function isInViewport(element) {
-    const rect = element.getBoundingClientRect();
-    return (
-      rect.top >= 0 &&
-      rect.left >= 0 &&
-      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-    );
+  // 到达叶子节点
+  if (!root.left && !root.right) {
+    return targetSum === root.val;
   }
   
-  function loadImages() {
-    images.forEach(img => {
-      if (isInViewport(img) && img.dataset.src) {
-        img.src = img.dataset.src;
-        img.removeAttribute('data-src');
-      }
-    });
-  }
+  return hasPathSum(root.left, targetSum - root.val) ||
+         hasPathSum(root.right, targetSum - root.val);
+}
+```
+
+### 5. 二叉树的最近公共祖先 【难度：中】【频率：高】
+
+**问题描述**：找到二叉树中两个指定节点的最近公共祖先。
+
+**解题思路**：后序遍历，自底向上查找。
+
+```javascript
+function lowestCommonAncestor(root, p, q) {
+  if (!root || root === p || root === q) return root;
   
-  // 初始加载
-  loadImages();
+  const left = lowestCommonAncestor(root.left, p, q);
+  const right = lowestCommonAncestor(root.right, p, q);
   
-  // 滚动时加载
-  window.addEventListener('scroll', loadImages);
+  if (!left) return right; // p和q都在右子树
+  if (!right) return left; // p和q都在左子树
+  
+  return root; // p和q分别在左右子树
 }
 ```
 
