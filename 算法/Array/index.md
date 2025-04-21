@@ -54,6 +54,14 @@ function flat(arr, depth = 1) {
     : arr
 }
 
+// 使用扩展运算符
+function flat(arr) {
+  while (arr.some(item => Array.isArray(item))) {
+    arr = [].concat(...arr);
+  }
+  return arr;
+}
+
 // 栈方式
 function flattenDeep(arr) {
   const result = [] 
@@ -73,3 +81,83 @@ function flattenDeep(arr) {
   return result
 }
 ```
+
+* L26 - 移除已排序数组重复元素，返回新数组长度
+  [0,0,1,1,1,2,2,3,3,4] -> [0,1,2,3,4]
+  ``` javascript
+  const removeDuplicates = (arr) => {
+    const len = arr.length
+    if (len <= 1) return len
+
+    let count = 1
+    for (let i=1; i<len; ++i) {
+        if (arr[i] !== arr[i-1]) {
+            arr[count++] = arr[i]
+        }
+    }
+
+    arr.length = count
+    return count
+  }
+  ```
+
+* L283 - 移除数组0值，并插到数组尾
+[0,1,0,3,12] -> [1,3,12,0,0]
+``` javascript
+const removeZeros = (arr) => {
+  const len = arr.length
+  let count = 0
+  for (let i=0; i<len; ++i) {
+      if (arr[i] !== 0) {
+          arr[count++] = arr[i]
+      }
+  }
+  while (len - count) {
+      arr[count++] = 0
+  }
+
+  return arr
+}
+```
+
+
+* 判断字符串括号是否匹配
+``` js
+// 可以用正则循环判断是否有合法的括号匹配，通过 replace 去除正常匹配的括号，最后没剩下字符就是正确的，代码简单效率不行
+
+// 通过栈来解，时间O(n)，空间O(n)
+const isValid = (s) => {
+  const map = {
+    '{': '}',
+    '(': ')',
+    '[': ']'
+  }
+  const stack = []
+  let ch
+  for (let i = 0; i < s.length ; i++) {
+    ch = s[i]
+    if (map[ch]) {
+        stack.push(ch)
+    } else if (ch !== map[stack.pop()]){
+        return false
+    }
+  }
+  return stack.length === 0
+};
+```
+---
+
+* L11 - 计算最大储水量。
+  ``` javascript
+  const maxArea = (lines) => {
+    let left = 0, right = lines.lenght - 1
+    let area = 0
+    while (left < right) {
+        area = Math.max(area, (right - left) * Math.min(lines[left], lines[right]))
+        if (lines[left] < lines[right]) ++left
+        else --right
+    }
+
+    return area
+  }
+  ```

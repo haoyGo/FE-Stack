@@ -136,144 +136,46 @@
   // https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone
   ```
 
-  深拷贝原理（lodash）
-  * 通过 `typeof` 区分是否是 `object`，不是直接返回
-    ``` js
-    function isObject(value) {
-      const type = typeof value
-      return value != null && (type === 'object' || type === 'function')
+  手写
+  ``` js
+  function deepClone(obj, hash = new Map()) {
+    // 处理null或基本类型
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
     }
-
-    if (!isObject(value)) {
-      return value
+    
+    // 处理日期对象
+    if (obj instanceof Date) {
+      return new Date(obj);
     }
-    ```
-  * 通过 `Array.isArray` 判断是否是数组，数组初始化
-    ``` js
-    function initCloneArray(array) {
-      const { length } = array
-      const result = new array.constructor(length)
-
-      // Add properties assigned by `RegExp#exec`.
-      if (length && typeof array[0] === 'string' && hasOwnProperty.call(array, 'index')) {
-        result.index = array.index
-        result.input = array.input
-      }
-      return result
+    
+    // 处理正则对象
+    if (obj instanceof RegExp) {
+      return new RegExp(obj);
     }
-    ```
-  * 通过 `Buffer.isBuffer` 判断是否是 `Buffer`
-    ``` js
-    const nativeIsBuffer = Buffer ? Buffer.isBuffer : undefined
-    const isBuffer = nativeIsBuffer || (() => false)
-
-    function cloneBuffer(buffer, isDeep) {
-      if (isDeep) {
-        return buffer.slice()
-      }
-      const length = buffer.length
-      const result = allocUnsafe ? allocUnsafe(length) : new buffer.constructor(length)
-
-      buffer.copy(result)
-      return result
+    
+    // 处理循环引用
+    if (hash.has(obj)) {
+      return hash.get(obj);
     }
-    ```
-  * 对象初始化
-    ``` js
-    function initCloneObject(object) {
-      return (typeof object.constructor === 'function' && !isPrototype(object))
-        ? Object.create(Object.getPrototypeOf(object))
-        : {}
-    }
-    ```
-  * 其余情况
-    ``` js
-    function cloneRegExp(regexp) {
-      const reFlags = /\w*$/
-      const result = new regexp.constructor(regexp.source, reFlags.exec(regexp))
-      result.lastIndex = regexp.lastIndex
-      return result
-    }
-
-    function cloneSymbol(symbol) {
-      const symbolValueOf = Symbol.prototype.valueOf
-      return Object(symbolValueOf.call(symbol))
-    }
-
-    function initCloneByTag(object, tag, isDeep) {
-      const Ctor = object.constructor
-      switch (tag) {
-        case arrayBufferTag:
-          return cloneArrayBuffer(object)
-
-        case boolTag:
-        case dateTag:
-          return new Ctor(+object)
-
-        case dataViewTag:
-          return cloneDataView(object, isDeep)
-
-        case float32Tag: case float64Tag:
-        case int8Tag: case int16Tag: case int32Tag:
-        case uint8Tag: case uint8ClampedTag: case uint16Tag: case uint32Tag:
-          return cloneTypedArray(object, isDeep)
-
-        case mapTag:
-          return new Ctor
-
-        case numberTag:
-        case stringTag:
-          return new Ctor(object)
-
-        case regexpTag:
-          return cloneRegExp(object)
-
-        case setTag:
-          return new Ctor
-
-        case symbolTag:
-          return cloneSymbol(object)
+    
+    // 创建新对象/数组
+    const cloneObj = Array.isArray(obj) ? [] : {};
+    
+    // 记录已克隆对象，避免循环引用
+    hash.set(obj, cloneObj);
+    
+    // 递归克隆属性
+    for (let key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        cloneObj[key] = deepClone(obj[key], hash);
       }
     }
-    ```
-  * `Map` 拷贝
-    ``` js
-    if (tag == mapTag) {
-      value.forEach((subValue, key) => {
-        result.set(key, baseClone(subValue, bitmask, customizer, key, value, stack))
-      })
-      return result
-    }
-    ```
-  * `Set` 拷贝
-    ``` js
-    if (tag == setTag) {
-      value.forEach((subValue) => {
-        result.add(baseClone(subValue, bitmask, customizer, subValue, value, stack))
-      })
-      return result
-    }
-    ```
-  * 对象通过遍历所有 `keys` 进行拷贝，需要考虑继承链上的属性，以及 `Symbol`
-    ``` js
-    // Object.keys 相当于 Object.getOwnPropertyNames 过滤掉不可枚举的属性
-    Object.keys // 拿对象自身，可枚举属性，无Symbol
+    
+    return cloneObj;
+  }
+  ```
 
-    for in // 拿对象自身，和继承链属性，可枚举属性，无 Symbol
-
-    Object.getOwnPropertySymbols // 拿对象自身，所有 Symbol 属性，包括不可枚举
-    function getSymbols(object) {
-      const propertyIsEnumerable = Object.prototype.propertyIsEnumerable
-      const nativeGetSymbols = Object.getOwnPropertySymbols
-      if (object == null) {
-        return []
-      }
-      object = Object(object)
-      return nativeGetSymbols(object).filter((symbol) => propertyIsEnumerable.call(object, symbol))
-    }
-    ```
-  * 最后考虑循环引用，通过一个 `Map` 存储遍历过的对象，如果已经存在，直接返回。注意，这个 Map 需跟随整个深拷贝直到结束，每次深拷贝则新建一个新的 Map
-  
   ---
 
 * 防抖
