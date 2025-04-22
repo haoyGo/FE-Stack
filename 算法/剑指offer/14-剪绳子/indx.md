@@ -16,12 +16,22 @@
 
 **解法**
 ``` js
-// 动态规划
+// 动态规划解法
+// 时间复杂度：O(n²) 双重循环
+// 空间复杂度：O(n) 需要dp数组存储中间结果
 var cuttingRope = function(n) {
+  // dp[i]表示长度为i的绳子剪断后的最大乘积
+  // 初始值：dp[0]=1, dp[1]=1（虽然题目要求n>1，但作为基础情况需要）
   const dp = [1, 1]
+  
+  // 计算从2到n每个长度的最大乘积
   for (let i = 2; i <= n; ++i) {
     let max = 0
+    // 尝试所有可能的剪法：剪j长度，剩下i-j长度
     for (let j = 1; j < i; ++j) {
+      // 比较两种剪法：
+      // 1. 剪成j和i-j两段，直接相乘
+      // 2. 剪j后，i-j继续剪，使用dp[i-j]存储的最大乘积
       max = Math.max(max, Math.max((i-j) * j, dp[i-j] * j))
     }
     dp[i] = max
@@ -30,12 +40,22 @@ var cuttingRope = function(n) {
   return dp[n]
 }
 
-// 贪心，尽可能切成更多的3，然后是2
+// 贪心算法解法
+// 数学证明：当n>=5时，3*(n-3)>=2*(n-2)，所以尽可能剪成长度为3的段
+// 时间复杂度：O(1) 常数时间计算
+// 空间复杂度：O(1) 只需要几个变量
 var cuttingRope = function(n) {
+  // 特殊情况处理：当n<4时，必须剪至少一次
+  // 2=1+1→1, 3=1+2→2
   if (n < 4) return n - 1
 
-  const p = Math.floor(n / 3)
-  const q = n % 3
+  const p = Math.floor(n / 3) // 能剪出多少个3
+  const q = n % 3             // 剪完3后剩下的长度
+  
+  // 余数处理：
+  // 1. 余0：正好剪成p个3
+  // 2. 余1：拆一个3变成2+2（因为3+1=4→2*2=4比3*1=3大）
+  // 3. 余2：保留最后一个2
   if (q === 0) {
     return Math.pow(3, p)
   } else if (q === 1) {

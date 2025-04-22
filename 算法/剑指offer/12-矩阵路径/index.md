@@ -14,6 +14,7 @@
 // 回溯法
 // 时间O(mn3^k)、空间O(k)
 var exist = function(board, word) {
+  // 边界检查：空矩阵直接返回false
   if (!board || !board[0].length) return false
 
   const rows = board.length, cols = board[0].length, len = word.length - 1
@@ -24,12 +25,20 @@ var exist = function(board, word) {
    */
   const backtract = (i, j, k = 0) => {
     const char = word[k]
+    // 边界检查：越界或字符不匹配
     if (i < 0 || i >= rows || j < 0 || j >= cols || char !== board[i][j]) return false
 
+    // 终止条件：已匹配完整单词
     if (k === len) return true
 
+    // 标记当前位置已访问（防止重复使用）
     board[i][j] = undefined
-    const res = backtract(i, j - 1, k + 1) || backtract(i , j + 1, k + 1) || backtract(i - 1, j, k + 1) || backtract(i + 1, j, k + 1)
+    
+    // 向四个方向递归搜索（左、右、上、下）
+    const res = backtract(i, j - 1, k + 1) || backtract(i , j + 1, k + 1) || 
+                backtract(i - 1, j, k + 1) || backtract(i + 1, j, k + 1)
+    
+    // 回溯：恢复当前位置字符
     board[i][j] = char
 
     return res
@@ -37,7 +46,10 @@ var exist = function(board, word) {
 
   for (let i = 0; i < rows; ++i) {
     for (let j = 0; j < cols; ++j) {
-      if (backtract(i, j)) return true
+      // 优化点：可以预先检查首字母是否匹配
+      if (board[i][j] === word[0] && backtract(i, j)) {
+        return true
+      }
     }
   }
 
