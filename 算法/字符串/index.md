@@ -78,27 +78,95 @@ function isPalindrome(s) {
 }
 
 // 进阶：最长回文子串
+// 解法一：中心扩展法
+// 时间复杂度：O(n²)，空间复杂度：O(1)
 function longestPalindrome(s) {
+  // 处理边界情况：字符串长度小于2时，整个字符串就是回文串
   if (s.length < 2) return s;
   
-  let start = 0;
-  let maxLength = 1;
+  let start = 0;      // 记录最长回文子串的起始位置
+  let maxLength = 1;  // 记录最长回文子串的长度
   
+  // 从中心向两边扩展，检查是否是回文串
   function expandAroundCenter(left, right) {
+    // 当左右指针都在有效范围内，且对应字符相等时，继续扩展
     while (left >= 0 && right < s.length && s[left] === s[right]) {
       const currentLength = right - left + 1;
+      // 如果当前回文串长度大于之前记录的最大长度，更新记录
       if (currentLength > maxLength) {
         start = left;
         maxLength = currentLength;
       }
+      // 向两边扩展
       left--;
       right++;
     }
   }
   
+  // 遍历每个字符，以其为中心点扩展
   for (let i = 0; i < s.length; i++) {
-    expandAroundCenter(i, i); // 奇数长度
-    expandAroundCenter(i, i + 1); // 偶数长度
+    expandAroundCenter(i, i);     // 处理奇数长度的回文串，如 "aba"
+    expandAroundCenter(i, i + 1); // 处理偶数长度的回文串，如 "abba"
+  }
+  
+  return s.substring(start, start + maxLength);
+}
+
+// 解法二：动态规划
+// 时间复杂度：O(n²)，空间复杂度：O(n²)
+/*
+动态规划解法详解：
+1. 状态定义：
+   dp[i][j] 表示字符串s从索引i到j的子串是否为回文串
+   - 当 dp[i][j] = true 时，表示s[i...j]是回文串
+   - 当 dp[i][j] = false 时，表示s[i...j]不是回文串
+
+2. 状态转移方程：
+   dp[i][j] = true 的条件：
+   - 当s[i] === s[j]时（两端字符相等）：
+     a) 如果子串长度 <= 3，则必定是回文串
+     b) 如果子串长度 > 3，需要判断去掉两端后的子串是否为回文串，即dp[i+1][j-1]是否为true
+
+3. 示例演示：
+   对于字符串 "babad"：
+   - 初始化所有单字符为true：dp[i][i] = true
+   - 长度为2的子串："ba", "ab", "ba", "ad" 都不是回文串
+   - 长度为3的子串："bab", "aba", "bad" 中，"aba"是回文串
+   - 长度为4和5的子串都不是回文串
+   最终找到最长回文子串 "aba"
+*/
+function longestPalindromeDP(s) {
+  const n = s.length;
+  if (n < 2) return s;
+
+  // 创建二维dp数组，初始化为false
+  const dp = Array(n).fill().map(() => Array(n).fill(false));
+  
+  // 初始化：所有单个字符都是回文串
+  for (let i = 0; i < n; i++) {
+    dp[i][i] = true;
+  }
+  
+  let start = 0;    // 记录最长回文子串的起始位置
+  let maxLength = 1; // 记录最长回文子串的长度
+  
+  // 枚举所有可能的子串长度（从2开始）
+  for (let len = 2; len <= n; len++) {
+    // 枚举所有可能的起始位置
+    for (let i = 0; i < n - len + 1; i++) {
+      // 计算子串的结束位置
+      const j = i + len - 1;
+      
+      // 判断当前子串是否为回文串
+      if (s[i] === s[j] && (len <= 3 || dp[i + 1][j - 1])) {
+        dp[i][j] = true;
+        // 更新最长回文子串的信息
+        if (len > maxLength) {
+          start = i;
+          maxLength = len;
+        }
+      }
+    }
   }
   
   return s.substring(start, start + maxLength);
@@ -214,3 +282,93 @@ function longestCommonPrefix2(strs) {
   return strs[0];
 }
 ```
+
+### 6. 最长公共子串 【难度：中】【频率：中】
+
+**问题描述**：给定两个字符串str1和str2，找到它们的最长公共子串（要求子串在原字符串中是连续的）。
+
+**解题思路**：使用动态规划，dp[i][j]表示以str1[i-1]和str2[j-1]结尾的最长公共子串长度。
+
+```javascript
+/*
+动态规划解法详解：
+1. 状态定义：
+   dp[i][j] 表示以str1的第i个字符和str2的第j个字符结尾的最长公共子串长度
+   - 当str1[i-1] === str2[j-1]时，dp[i][j] = dp[i-1][j-1] + 1
+   - 否则，dp[i][j] = 0
+
+2. 状态转移方程：
+   if (str1[i-1] === str2[j-1]) {
+     dp[i][j] = dp[i-1][j-1] + 1;
+   } else {
+     dp[i][j] = 0;
+   }
+
+3. 示例演示：
+   str1 = "abcde", str2 = "bcdef"
+   - dp[1][0] 到 dp[5][0] 和 dp[0][1] 到 dp[0][6] 都初始化为0
+   - 当遍历到str1[1]=b和str2[0]=b时，dp[2][1] = 1
+   - 当遍历到str1[2]=c和str2[1]=c时，dp[3][2] = 2
+   - 当遍历到str1[3]=d和str2[2]=d时，dp[4][3] = 3
+   - 当遍历到str1[4]=e和str2[3]=e时，dp[5][4] = 4
+   最长公共子串为"bcde"，长度为4
+*/
+function longestCommonSubstring(str1, str2) {
+  const m = str1.length;
+  const n = str2.length;
+  const dp = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
+  
+  let maxLength = 0;  // 记录最长公共子串的长度
+  let endIndex = 0;   // 记录最长公共子串在str1中的结束位置
+  
+  // 填充dp数组
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (str1[i-1] === str2[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+        // 更新最长公共子串的信息
+        if (dp[i][j] > maxLength) {
+          maxLength = dp[i][j];
+          endIndex = i - 1;
+        }
+      }
+    }
+  }
+  
+  // 返回最长公共子串
+  return str1.substring(endIndex - maxLength + 1, endIndex + 1);
+}
+
+// 空间优化版本
+// 由于dp[i][j]只依赖于dp[i-1][j-1]，可以使用一维数组优化空间复杂度
+function longestCommonSubstringOptimized(str1, str2) {
+  const m = str1.length;
+  const n = str2.length;
+  const dp = Array(n + 1).fill(0);
+  
+  let maxLength = 0;
+  let endIndex = 0;
+  
+  for (let i = 1; i <= m; i++) {
+    let prev = 0;  // 记录dp[i-1][j-1]的值
+    for (let j = 1; j <= n; j++) {
+      const temp = dp[j];
+      if (str1[i-1] === str2[j-1]) {
+        dp[j] = prev + 1;
+        if (dp[j] > maxLength) {
+          maxLength = dp[j];
+          endIndex = i - 1;
+        }
+      } else {
+        dp[j] = 0;
+      }
+      prev = temp;
+    }
+  }
+  
+  return str1.substring(endIndex - maxLength + 1, endIndex + 1);
+}
+```
+
+时间复杂度：O(m*n)，其中m和n分别是两个字符串的长度。
+空间复杂度：基础版本O(m*n)，优化版本O(n)。
