@@ -180,18 +180,27 @@
 
 * 防抖
 ``` js
-const debounce = (fn, millSec) => {
-  let timer = null
-  return function (...args) {
-    if (timer) {
-      clearTimeout(timer)
-    }
-    timer = setTimeout(() => {
-      fn.apply(this, args)
-    }, millSec)
+// 防抖
+const debounce = (fn, time, flag) => {
+  if (!(typeof fn === 'function')) {
+    return () => {}
+  }
 
+  let timer = null
+  return function (...arg) {
+    if (flag && timer === null) {
+      fn.apply(this, arg)
+      timer = 1
+    } else {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        fn.apply(this, arg)
+        timer = null
+      }, time)
+    }
   }
 }
+
 ```
   ---
 
@@ -209,15 +218,22 @@ const throttle = (fn, millSec) => {
 }
 
 // 定时器版
-const throttle = (fun, wait) => {
-  let timeout = null
-  return function (...args){
-    const context = this
-    if(!timeout){
-      timeout = setTimeout(() => {
-        fun.apply(context, args)
-        timeout = null
-      }, wait)
+
+const throttle = (fn, time, flag) => {
+  if (!(typeof fn === 'function')) {
+    return () => {}
+  }
+
+  let timer = null
+  return function (...arg) {
+    if (flag && timer === null) {
+      fn.apply(this, arg)
+      timer = 1
+    } else if (!timer) {
+      timer = setTimeout(() => {
+        fn.apply(this, arg)
+        timer = null
+      }, time)
     }
   }
 }
