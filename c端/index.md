@@ -681,3 +681,5 @@ npm run dev
 - ✅ 1px 边框用 transform scale
 - ✅ 安全区域用 env()
 - ✅ 真机测试不可少
+
+> C 端技巧 https://juejin.cn/post/6921886428158754829
