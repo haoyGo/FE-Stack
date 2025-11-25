@@ -120,8 +120,8 @@ class Even {
 `Symbol.toPrimitive` 被调用时，会传递一个参数 `hint`，表示要转换的类型。有 `number`，`string`，`default`
 ``` javascript
 const toNumberPrimitive = Symbol('toNumberPrimitive')
-const toStringPrimitive = Symbol('toNumberPrimitive')
-const toDefaultPrimitive = Symbol('toNumberPrimitive')
+const toStringPrimitive = Symbol('toStringPrimitive')
+const toDefaultPrimitive = Symbol('toDefaultPrimitive')
 class MyObj {
     toNumberPrimitive() {
         return 10
@@ -139,5 +139,5 @@ class MyObj {
 const obj = new MyObj()
 console.log(+obj) // 10
 console.log(String(obj)) // 'StringPrimitive'
-console.log((obj == 'Default') // true
+console.log(obj == 'Default') // true
 ```

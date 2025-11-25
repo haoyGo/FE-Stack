@@ -103,42 +103,14 @@
   // 1 JSON
   JSON.parse(JSON.stringify(obj))
 
-  /*** Structured Clone 结构化克隆算法 ***/
-  // 2. MessageChannel
-  // 优点是能解决循环引用的问题，还支持大量的内置数据类型。
-  // 缺点就是这个方法是异步的。
-  function structuralClone(obj) {
-    return new Promise(resolve => {
-      const {port1, port2} = new MessageChannel();
-      port2.onmessage = ev => resolve(ev.data);
-      port1.postMessage(obj);
-    })
-  }
-  const obj = /* ... */;
-  structuralClone(obj).then(res=>{
-    console.log(res);
-  })
-
-  // 3. Notification API
-  // 优点是能解决循环对象问题，也支持许多内置类型的克隆，并且是同步的。
-  // 缺点是这个api的使用需要向用户请求权限，但是用在这里克隆数据的时候，不经用户授权也可以使用。在http协议的情况下会提示你再https的场景下使用
-  function structuralClone(obj) {
-    return new Notification('', {data: obj, silent: true}).data;
-  }
-
-  var obj = {};
-  var b = {obj};
-  obj.b = b
-  var copy = structuralClone(obj);
-  console.log(copy)
-
-  // 4. structuredClone，新API
+  // 2. structuredClone，新API
   // https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone
+  const clone = structuredClone(original);
   ```
 
   手写
   ``` js
-  function deepClone(obj, hash = new Map()) {
+  function deepClone(obj, hash = new WeakMap()) {
     // 处理null或基本类型
     if (obj === null || typeof obj !== 'object') {
       return obj;
@@ -181,22 +153,29 @@
 * 防抖
 ``` js
 // 防抖
-const debounce = (fn, time, flag) => {
+const debounce = (fn, delay, flag) => {
   if (!(typeof fn === 'function')) {
     return () => {}
   }
 
   let timer = null
+
+  // 取消防抖
+  function cancel() {
+    clearTimeout(timer);
+    timer = null;
+  }
+
   return function (...arg) {
-    if (flag && timer === null) {
+    if (flag && !timer) {
       fn.apply(this, arg)
-      timer = 1
+      timer = setTimeout(cancel, delay);
     } else {
       clearTimeout(timer)
       timer = setTimeout(() => {
         fn.apply(this, arg)
         timer = null
-      }, time)
+      }, delay)
     }
   }
 }
@@ -219,21 +198,28 @@ const throttle = (fn, millSec) => {
 
 // 定时器版
 
-const throttle = (fn, time, flag) => {
+const throttle = (fn, delay, flag) => {
   if (!(typeof fn === 'function')) {
     return () => {}
   }
 
   let timer = null
+
+  // 取消防抖
+  function cancel() {
+    clearTimeout(timer);
+    timer = null;
+  }
+
   return function (...arg) {
-    if (flag && timer === null) {
+    if (flag && !timer) {
       fn.apply(this, arg)
-      timer = 1
+      timer = setTimeout(cancel, delay);
     } else if (!timer) {
       timer = setTimeout(() => {
         fn.apply(this, arg)
         timer = null
-      }, time)
+      }, delay)
     }
   }
 }
@@ -261,14 +247,6 @@ const throttle = (fn, time, flag) => {
   ---
 
 ### js-skills
-* for
-  ``` javascript
-  for (let i = 0; i < len; i++)
-
-  // 小优化
-  for (let i = len; i--;)
-  ```
-  ---
 
 * for in
   ``` javascript

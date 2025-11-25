@@ -30,7 +30,7 @@ mvp.setAttribute('content','width=480');
 ---
 
 pc上 **1CSS像素** 基本等于 **1物理像素**。
-随着技术的发展，移动设备的屏幕像素密度越来越高。例如苹果推出的 `Retina(视网膜)屏`，就是CSS像素大小固定，物理像素增加了倍数，`window.devicePixelRatio` 用来表示 **设备物理像素和设备独立像素的比例**。
+随着技术的发展，移动设备的屏幕像素密度越高。例如苹果推出的 `Retina(视网膜)屏`，就是CSS像素大小固定，物理像素增加了倍数，`window.devicePixelRatio` 用来表示 **设备物理像素和设备独立像素的比例**。
 
 #### 一像素问题
 * 伪类 + transform
@@ -85,3 +85,106 @@ pc上 **1CSS像素** 基本等于 **1物理像素**。
   var fontsize = 10 * (docEl.clientWidth / 320) + 'px';  
   docEl.style.fontSize = fontsize;  
   ```
+
+
+### rem布局
+rem是相对于根元素（html）的字体大小的单位。在移动端布局中，我们通常使用rem来实现页面的等比缩放。
+
+#### 原理
+* 1rem = html根元素设定的font-size的px值
+* 将px转换为rem时，需要将px值除以根元素的font-size值
+
+#### 实现方案
+1. 动态设置根元素font-size
+```js
+// 以750px设计稿为例
+function setRem() {
+    const baseSize = 100; // 基准值
+    const designWidth = 750; // 设计稿宽度
+    const scale = document.documentElement.clientWidth / designWidth;
+    document.documentElement.style.fontSize = baseSize * scale + 'px';
+}
+
+// 初始化
+setRem();
+// 窗口变化时重新设置
+window.addEventListener('resize', setRem);
+```
+
+2. 使用 postcss-pxtorem 插件
+```js
+// postcss.config.js
+module.exports = {
+    plugins: {
+        'postcss-pxtorem': {
+            rootValue: 100, // 根元素字体大小
+            propList: ['*'], // 需要转换的属性
+            minPixelValue: 2 // 小于2px的不转换
+        }
+    }
+}
+```
+
+#### 注意事项
+* 字体不建议使用rem，会导致字体大小不稳定
+* 设置meta标签viewport，禁止用户缩放
+* 考虑屏幕最大最小宽度的限制
+
+### 移动端性能优化
+#### 首屏加载优化
+* 路由懒加载
+* 图片懒加载
+* 组件按需加载
+* 服务端渲染SSR
+* 静态资源预加载
+* 合理使用缓存策略
+
+#### 渲染性能优化
+* 避免重绘重排
+* 使用transform代替位移
+* 合理使用will-change
+* 开启GPU加速
+* 防抖节流
+* 虚拟列表
+
+### 调试与监控
+#### 真机调试
+* Chrome Remote Debug
+* Safari Web Inspector
+* vConsole/eruda等工具
+* Charles/Fiddler抓包
+
+#### 性能监控
+* Performance API
+* 首屏加载时间
+* 页面白屏时间
+* FPS监控
+* 内存泄漏
+
+#### 错误监控
+* try-catch
+* window.onerror
+* unhandledrejection
+* 资源加载错误
+* 接口错误监控
+* 错误上报和分析
+
+### 安全性
+#### XSS防范
+* 输入过滤
+* 输出转义
+* CSP内容安全策略
+* HttpOnly Cookie
+
+#### CSRF防范
+* 验证码
+* Referer验证
+* Token验证
+* SameSite Cookie
+
+#### 其他安全措施
+* HTTPS
+* 敏感数据加密
+* 防止SQL注入
+* 防止点击劫持
+* 防止恶意第三方代码注入
