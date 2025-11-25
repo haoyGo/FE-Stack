@@ -125,6 +125,58 @@ function verifyToken(req, res, next) {
 - 令牌过期后，前端可用 refresh_token 换取新 JWT
 - 避免长期有效的 access_token
 
+JWT token 自动更新主要有以下几种方案：
+
+双 token 机制
+
+access token：短期令牌，用于接口认证
+refresh token：长期令牌，用于刷新 access token
+优点：安全性高，即使 access token 泄露影响有限
+缺点：实现相对复杂，需要额外存储 refresh token
+工作流程：
+
+用户登录后获取 access token 和 refresh token
+使用 access token 访问接口
+access token 过期时，使用 refresh token 获取新的 access token
+refresh token 过期时，需要重新登录
+
+```js
+// 前端示例代码
+async function request(url, options) {
+  try {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${getAccessToken()}`,
+      },
+    });
+
+    if (res.status === 401) {
+      // access token 过期，尝试刷新
+      const newToken = await refreshToken();
+      if (newToken) {
+        // 使用新 token 重试请求
+        return request(url, options);
+      } else {
+        // refresh token 也过期，跳转登录
+        redirectToLogin();
+      }
+    }
+
+    return res;
+  } catch (error) {
+    console.error(error);
+  }
+}
+```
+
+最佳实践：
+
+- access token 过期时间不宜过长（如 2 小时）
+- refresh token 过期时间可以较长（如 7 天）
+- 重要操作仍需要二次验证
+- 考虑 token 注销机制
+
 ---
 
 ## 三、JWT 优缺点与安全问题
