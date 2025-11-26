@@ -5,11 +5,13 @@
 ### 1. 整体架构演进
 
 #### 旧架构（Old Architecture）
+
 - **JavaScript 层**：业务逻辑、React 组件
 - **Bridge（桥接层）**：异步消息传递，JSON 序列化
 - **Native 层**：原生模块、UI 组件
 
 **问题**：
+
 - Bridge 是异步的，所有通信都需要序列化/反序列化
 - 大量数据传输时性能瓶颈明显
 - 无法实现同步调用
@@ -18,12 +20,14 @@
 #### 新架构（New Architecture - Fabric + TurboModules）
 
 **Fabric（新渲染引擎）**：
+
 - 使用 JSI（JavaScript Interface）替代 Bridge
 - 支持同步调用
 - 直接操作 Shadow Tree
 - 更好的类型安全
 
 **TurboModules（新原生模块系统）**：
+
 - 懒加载，按需初始化
 - 同步方法调用支持
 - 类型安全的接口
@@ -38,7 +42,7 @@ JSI 是连接 JavaScript 和原生代码的新接口：
 const result = nativeModule.syncMethod();
 
 // C++ 侧
-jsi::Value syncMethod(jsi::Runtime& runtime, 
+jsi::Value syncMethod(jsi::Runtime& runtime,
                       const jsi::Value& thisValue,
                       const jsi::Value* arguments,
                       size_t count) {
@@ -48,6 +52,7 @@ jsi::Value syncMethod(jsi::Runtime& runtime,
 ```
 
 **优势**：
+
 - 零拷贝：直接共享内存
 - 类型安全：编译时类型检查
 - 同步调用：某些场景下必需
@@ -58,17 +63,20 @@ jsi::Value syncMethod(jsi::Runtime& runtime,
 React Native 有三个主要线程：
 
 #### JavaScript Thread（JS 线程）
+
 - 运行 JavaScript 代码
 - 执行业务逻辑
 - React 组件渲染
 - 使用 Hermes 引擎（默认）
 
 #### Native/UI Thread（主线程）
+
 - 原生 UI 渲染
 - 处理用户交互
 - 执行原生模块代码
 
 #### Shadow Thread（影子线程）
+
 - 计算布局（Yoga 布局引擎）
 - 构建 Shadow Tree
 - 不阻塞 UI 线程
@@ -77,7 +85,7 @@ React Native 有三个主要线程：
 // 在 JS 线程执行
 const App = () => {
   const [count, setCount] = useState(0);
-  
+
   return (
     <View>
       <Text>{count}</Text>
@@ -170,10 +178,11 @@ float height = YGNodeLayoutGetHeight(root);
 
 ```javascript
 // JavaScript 调用原生方法
-import { NativeModules } from 'react-native';
+import { NativeModules } from "react-native";
 
-NativeModules.CalendarModule.createEvent('Party', '2024-12-25')
-  .then(eventId => console.log(eventId));
+NativeModules.CalendarModule.createEvent("Party", "2024-12-25").then(
+  (eventId) => console.log(eventId)
+);
 
 // 内部流程：
 // 1. JS 将调用信息序列化为 JSON
@@ -197,15 +206,15 @@ class MessageQueue {
 
   enqueueNativeCall(moduleID, methodID, args, onSuccess, onFail) {
     const callID = this._callID++;
-    
+
     this._queue[0].push(moduleID);
     this._queue[1].push(methodID);
     this._queue[2].push(args);
-    
+
     if (onSuccess || onFail) {
       this._callbacks[callID] = { onSuccess, onFail };
     }
-    
+
     // 刷新队列到 Native
     global.nativeFlushQueueImmediate(this._queue);
     this._queue = [[], [], [], 0];
@@ -225,11 +234,11 @@ class MessageQueue {
 
 ```objective-c
 // RCTBridge.m
-- (void)enqueueJSCall:(NSString *)module 
-               method:(NSString *)method 
+- (void)enqueueJSCall:(NSString *)module
+               method:(NSString *)method
                  args:(NSArray *)args
            completion:(dispatch_block_t)completion {
-  
+
   // 将调用加入队列
   [self.javaScriptExecutor executeApplicationScript:script
                                            sourceURL:url
@@ -243,12 +252,12 @@ class MessageQueue {
   NSArray *moduleIDs = buffer[0];
   NSArray *methodIDs = buffer[1];
   NSArray *params = buffer[2];
-  
+
   for (NSUInteger i = 0; i < moduleIDs.count; i++) {
     NSNumber *moduleID = moduleIDs[i];
     NSNumber *methodID = methodIDs[i];
     NSArray *methodParams = params[i];
-    
+
     // 查找并调用原生方法
     RCTModuleData *moduleData = _moduleDataByID[moduleID];
     [moduleData dispatchMethodWithID:methodID params:methodParams];
@@ -262,7 +271,7 @@ class MessageQueue {
 
 ```javascript
 // JavaScript 直接调用 C++ 方法
-global.nativePerformanceNow = function() {
+global.nativePerformanceNow = function () {
   // 通过 JSI 同步调用，无序列化开销
   return __nativePerformanceNow();
 };
@@ -270,27 +279,27 @@ global.nativePerformanceNow = function() {
 const startTime = global.nativePerformanceNow();
 // 执行操作
 const endTime = global.nativePerformanceNow();
-console.log('Duration:', endTime - startTime);
+console.log("Duration:", endTime - startTime);
 ```
 
 #### TurboModule 定义
 
 ```typescript
 // NativeCalculator.ts (JavaScript 接口定义)
-import type { TurboModule } from 'react-native';
-import { TurboModuleRegistry } from 'react-native';
+import type { TurboModule } from "react-native";
+import { TurboModuleRegistry } from "react-native";
 
 export interface Spec extends TurboModule {
-  add(a: number, b: number): number;  // 同步方法
-  addAsync(a: number, b: number): Promise<number>;  // 异步方法
+  add(a: number, b: number): number; // 同步方法
+  addAsync(a: number, b: number): Promise<number>; // 异步方法
   addWithCallback(
-    a: number, 
-    b: number, 
+    a: number,
+    b: number,
     callback: (result: number) => void
   ): void;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>('Calculator');
+export default TurboModuleRegistry.getEnforcing<Spec>("Calculator");
 ```
 
 ```cpp
@@ -308,20 +317,20 @@ jsi::Value NativeCalculator::add(jsi::Runtime& rt, double a, double b) {
 }
 
 jsi::Value NativeCalculator::addAsync(
-    jsi::Runtime& rt, 
-    double a, 
+    jsi::Runtime& rt,
+    double a,
     double b) {
-  
+
   // 创建 Promise
   auto promise = createPromise(rt);
-  
+
   // 在后台线程执行
   std::thread([promise, a, b]() {
     double result = a + b;
     // 回到 JS 线程
     promise->resolve(jsi::Value(result));
   }).detach();
-  
+
   return promise->jsiPromise(rt);
 }
 
@@ -343,7 +352,7 @@ RCT_EXPORT_MODULE()
 }
 
 - (void)startObserving {
-  [[NSNotificationCenter defaultCenter] 
+  [[NSNotificationCenter defaultCenter]
     addObserver:self
        selector:@selector(batteryLevelChanged:)
            name:UIDeviceBatteryLevelDidChangeNotification
@@ -352,7 +361,7 @@ RCT_EXPORT_MODULE()
 
 - (void)batteryLevelChanged:(NSNotification *)notification {
   float level = [UIDevice currentDevice].batteryLevel;
-  [self sendEventWithName:@"onBatteryLevelChange" 
+  [self sendEventWithName:@"onBatteryLevelChange"
                      body:@{@"level": @(level)}];
 }
 
@@ -361,15 +370,15 @@ RCT_EXPORT_MODULE()
 
 ```javascript
 // JavaScript: 监听原生事件
-import { NativeEventEmitter, NativeModules } from 'react-native';
+import { NativeEventEmitter, NativeModules } from "react-native";
 
 const eventEmitter = new NativeEventEmitter(NativeModules.DeviceEventEmitter);
 
 useEffect(() => {
   const subscription = eventEmitter.addListener(
-    'onBatteryLevelChange',
+    "onBatteryLevelChange",
     (event) => {
-      console.log('Battery level:', event.level);
+      console.log("Battery level:", event.level);
     }
   );
 
@@ -390,7 +399,7 @@ for (let i = 0; i < 1000; i++) {
 // ✅ 好的做法：批量调用
 const items = Array.from({ length: 1000 }, (_, i) => ({
   key: `key_${i}`,
-  value: `value_${i}`
+  value: `value_${i}`,
 }));
 NativeModules.Storage.multiSet(items);
 ```
@@ -399,7 +408,9 @@ NativeModules.Storage.multiSet(items);
 
 ```javascript
 // ❌ 传递大对象
-const largeData = { /* 大量数据 */ };
+const largeData = {
+  /* 大量数据 */
+};
 NativeModules.DataProcessor.process(largeData);
 
 // ✅ 使用引用或分块传递
@@ -416,6 +427,7 @@ InteractionManager.runAfterInteractions(() => {
   expensiveOperation();
 });
 ```
+
 ## 四、性能优化深度解析
 
 ### 1. 列表性能优化
@@ -433,22 +445,16 @@ const OptimizedList = () => {
       // 关键优化属性
       renderItem={({ item }) => <ListItem item={item} />}
       keyExtractor={(item) => item.id}
-      
       // 初始渲染数量
       initialNumToRender={10}
-      
       // 每批渲染数量
       maxToRenderPerBatch={10}
-      
       // 渲染窗口大小（屏幕高度的倍数）
       windowSize={5}
-      
       // 移除 clipped 子视图
       removeClippedSubviews={true}
-      
       // 更新优化
       updateCellsBatchingPeriod={50}
-      
       // getItemLayout 提供精确尺寸，避免测量
       getItemLayout={(data, index) => ({
         length: ITEM_HEIGHT,
@@ -460,48 +466,57 @@ const OptimizedList = () => {
 };
 
 // ListItem 组件优化
-const ListItem = React.memo(({ item }) => {
-  // 避免内联函数
-  const handlePress = useCallback(() => {
-    console.log(item.id);
-  }, [item.id]);
-  
-  return (
-    <TouchableOpacity onPress={handlePress}>
-      <Text>{item.title}</Text>
-    </TouchableOpacity>
-  );
-}, (prevProps, nextProps) => {
-  // 自定义比较逻辑
-  return prevProps.item.id === nextProps.item.id &&
-         prevProps.item.title === nextProps.item.title;
-});
+const ListItem = React.memo(
+  ({ item }) => {
+    // 避免内联函数
+    const handlePress = useCallback(() => {
+      console.log(item.id);
+    }, [item.id]);
+
+    return (
+      <TouchableOpacity onPress={handlePress}>
+        <Text>{item.title}</Text>
+      </TouchableOpacity>
+    );
+  },
+  (prevProps, nextProps) => {
+    // 自定义比较逻辑
+    return (
+      prevProps.item.id === nextProps.item.id &&
+      prevProps.item.title === nextProps.item.title
+    );
+  }
+);
 ```
 
 #### RecyclerListView（更高性能）
 
 ```javascript
-import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview';
+import {
+  RecyclerListView,
+  DataProvider,
+  LayoutProvider,
+} from "recyclerlistview";
 
 const HighPerformanceList = () => {
   // DataProvider：数据管理
   const [dataProvider, setDataProvider] = useState(
     new DataProvider((r1, r2) => r1.id !== r2.id)
   );
-  
+
   // LayoutProvider：布局管理
   const layoutProvider = new LayoutProvider(
     (index) => dataProvider.getDataForIndex(index).type,
     (type, dim) => {
-      dim.width = Dimensions.get('window').width;
-      dim.height = type === 'NORMAL' ? 100 : 150;
+      dim.width = Dimensions.get("window").width;
+      dim.height = type === "NORMAL" ? 100 : 150;
     }
   );
-  
+
   const rowRenderer = (type, data) => {
     return <ListItem data={data} />;
   };
-  
+
   return (
     <RecyclerListView
       dataProvider={dataProvider}
@@ -525,13 +540,13 @@ const fadeAnim = useRef(new Animated.Value(0)).current;
 Animated.timing(fadeAnim, {
   toValue: 1,
   duration: 1000,
-  useNativeDriver: true,  // 关键！
+  useNativeDriver: true, // 关键！
 }).start();
 
 // 支持 useNativeDriver 的属性：
 // - opacity
 // - transform (translate, scale, rotate)
-// 
+//
 // 不支持的属性：
 // - width, height
 // - backgroundColor
@@ -546,29 +561,29 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   runOnJS,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
 const AdvancedAnimation = () => {
   // Shared Value 在 UI 线程运行
   const offset = useSharedValue(0);
-  
+
   // 动画样式在 UI 线程计算
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: offset.value }],
     };
   });
-  
+
   const handleGesture = (e) => {
     // 直接在 UI 线程更新，无 Bridge 延迟
     offset.value = withTiming(e.nativeEvent.translationX);
-    
+
     // 需要在 JS 线程执行的逻辑
     if (offset.value > 100) {
       runOnJS(doSomethingInJS)();
     }
   };
-  
+
   return (
     <PanGestureHandler onGestureEvent={handleGesture}>
       <Animated.View style={[styles.box, animatedStyle]} />
@@ -578,8 +593,8 @@ const AdvancedAnimation = () => {
 
 // Reanimated Worklet: 在 UI 线程运行的 JS 代码
 function workletExample() {
-  'worklet';  // 标记为 worklet
-  
+  "worklet"; // 标记为 worklet
+
   // 这段代码会被编译并在 UI 线程执行
   return Math.random() * 100;
 }
@@ -594,33 +609,27 @@ const ImageOptimization = () => {
     <>
       {/* 1. 使用合适的图片格式和尺寸 */}
       <Image
-        source={{ uri: 'https://example.com/image.webp' }}
+        source={{ uri: "https://example.com/image.webp" }}
         style={{ width: 100, height: 100 }}
         // 2. 启用缓存
         cache="force-cache"
         // 3. 渐进式加载
         progressiveRenderingEnabled={true}
       />
-      
+
       {/* 4. 使用 FastImage（第三方库） */}
       <FastImage
         source={{
-          uri: 'https://example.com/image.jpg',
+          uri: "https://example.com/image.jpg",
           priority: FastImage.priority.high,
           cache: FastImage.cacheControl.immutable,
         }}
         resizeMode={FastImage.resizeMode.cover}
       />
-      
+
       {/* 5. 占位图 */}
-      <Image
-        source={require('./placeholder.png')}
-        style={styles.image}
-      >
-        <Image
-          source={{ uri: highResImageUrl }}
-          style={styles.image}
-        />
+      <Image source={require("./placeholder.png")} style={styles.image}>
+        <Image source={{ uri: highResImageUrl }} style={styles.image} />
       </Image>
     </>
   );
@@ -633,8 +642,8 @@ const ImageOptimization = () => {
 
 ```javascript
 // 使用 React.lazy 和 Suspense
-const ProfileScreen = React.lazy(() => import('./ProfileScreen'));
-const SettingsScreen = React.lazy(() => import('./SettingsScreen'));
+const ProfileScreen = React.lazy(() => import("./ProfileScreen"));
+const SettingsScreen = React.lazy(() => import("./SettingsScreen"));
 
 const App = () => {
   return (
@@ -658,7 +667,7 @@ module.exports = {
   transformer: {
     // 启用内联 require
     inlineRequires: true,
-    
+
     minifierConfig: {
       // 压缩配置
       compress: {
@@ -667,12 +676,12 @@ module.exports = {
       },
     },
   },
-  
+
   serializer: {
     // 自定义模块过滤
     processModuleFilter: (module) => {
       // 排除开发工具
-      if (module.path.includes('__tests__')) {
+      if (module.path.includes("__tests__")) {
         return false;
       }
       return true;
@@ -698,6 +707,7 @@ use_react_native!(
 ```
 
 **Hermes 优势**：
+
 - 更小的 Bundle 体积（字节码格式）
 - 更快的启动时间（预编译）
 - 更低的内存占用
@@ -710,17 +720,17 @@ use_react_native!(
 const MemorySafeComponent = () => {
   useEffect(() => {
     // 订阅事件
-    const subscription = eventEmitter.addListener('event', handler);
-    
+    const subscription = eventEmitter.addListener("event", handler);
+
     // 定时器
     const timer = setInterval(() => {
       // do something
     }, 1000);
-    
+
     // 动画
     const animation = Animated.timing(value, config);
     animation.start();
-    
+
     // 清理函数：防止内存泄漏
     return () => {
       subscription.remove();
@@ -728,14 +738,14 @@ const MemorySafeComponent = () => {
       animation.stop();
     };
   }, []);
-  
+
   // 大对象及时释放
   const handleLargeData = async () => {
     let largeData = await fetchLargeData();
     processData(largeData);
-    largeData = null;  // 帮助 GC
+    largeData = null; // 帮助 GC
   };
-  
+
   return <View />;
 };
 
@@ -744,7 +754,7 @@ const ExpensiveComponent = ({ data }) => {
   const processedData = useMemo(() => {
     return heavyComputation(data);
   }, [data]);
-  
+
   return <List data={processedData} />;
 };
 ```
@@ -757,13 +767,13 @@ let heavyModule = null;
 
 const loadHeavyModule = () => {
   if (!heavyModule) {
-    heavyModule = require('./HeavyModule');
+    heavyModule = require("./HeavyModule");
   }
   return heavyModule;
 };
 
 // 2. 使用启动屏优化感知
-import SplashScreen from 'react-native-splash-screen';
+import SplashScreen from "react-native-splash-screen";
 
 useEffect(() => {
   // 初始化完成后隐藏启动屏
@@ -775,44 +785,43 @@ useEffect(() => {
 // 3. 预加载关键数据
 const App = () => {
   const [isReady, setIsReady] = useState(false);
-  
+
   useEffect(() => {
     async function prepare() {
       try {
         // 预加载字体
         await Font.loadAsync({
-          'custom-font': require('./assets/font.ttf'),
+          "custom-font": require("./assets/font.ttf"),
         });
-        
+
         // 预加载关键数据
-        await AsyncStorage.multiGet(['user', 'token']);
-        
+        await AsyncStorage.multiGet(["user", "token"]);
+
         // 预热导航栈
-        await Asset.loadAsync([
-          require('./assets/splash.png'),
-        ]);
+        await Asset.loadAsync([require("./assets/splash.png")]);
       } finally {
         setIsReady(true);
       }
     }
-    
+
     prepare();
   }, []);
-  
+
   if (!isReady) {
     return null;
   }
-  
+
   return <MainApp />;
 };
 ```
+
 ## 五、调试技巧
 
 ### 1. 性能监控
 
 ```javascript
 // Performance Monitor
-import { PerformanceObserver, performance } from 'react-native-performance';
+import { PerformanceObserver, performance } from "react-native-performance";
 
 // 监控各种性能指标
 const observer = new PerformanceObserver((list) => {
@@ -821,27 +830,27 @@ const observer = new PerformanceObserver((list) => {
   });
 });
 
-observer.observe({ entryTypes: ['measure', 'mark'] });
+observer.observe({ entryTypes: ["measure", "mark"] });
 
 // 标记性能点
-performance.mark('screen-mount-start');
+performance.mark("screen-mount-start");
 // ... 渲染逻辑
-performance.mark('screen-mount-end');
-performance.measure('screen-mount', 'screen-mount-start', 'screen-mount-end');
+performance.mark("screen-mount-end");
+performance.measure("screen-mount", "screen-mount-start", "screen-mount-end");
 
 // JS 帧率监控
-import { JSBridge } from 'react-native';
+import { JSBridge } from "react-native";
 
 let lastFrameTime = performance.now();
 const checkFrameRate = () => {
   const currentTime = performance.now();
   const fps = 1000 / (currentTime - lastFrameTime);
   lastFrameTime = currentTime;
-  
+
   if (fps < 55) {
-    console.warn('Frame drop detected:', fps.toFixed(2), 'fps');
+    console.warn("Frame drop detected:", fps.toFixed(2), "fps");
   }
-  
+
   requestAnimationFrame(checkFrameRate);
 };
 
@@ -852,7 +861,7 @@ checkFrameRate();
 
 ```javascript
 // 使用 React DevTools Profiler
-import { Profiler } from 'react';
+import { Profiler } from "react";
 
 const onRenderCallback = (
   id,
@@ -864,20 +873,20 @@ const onRenderCallback = (
   interactions
 ) => {
   console.log({
-    id,                 // 组件名称
-    phase,              // "mount" 或 "update"
-    actualDuration,     // 本次渲染耗时
-    baseDuration,       // 理论最快渲染时间
+    id, // 组件名称
+    phase, // "mount" 或 "update"
+    actualDuration, // 本次渲染耗时
+    baseDuration, // 理论最快渲染时间
   });
 };
 
 <Profiler id="App" onRender={onRenderCallback}>
   <App />
-</Profiler>
+</Profiler>;
 
 // 检测循环依赖
 // 使用 why-did-you-render
-import whyDidYouRender from '@welldone-software/why-did-you-render';
+import whyDidYouRender from "@welldone-software/why-did-you-render";
 
 if (__DEV__) {
   whyDidYouRender(React, {
@@ -897,24 +906,23 @@ if (__DEV__) {
 const originalFetch = global.fetch;
 global.fetch = async (...args) => {
   const startTime = Date.now();
-  console.log('Request:', args[0]);
-  
+  console.log("Request:", args[0]);
+
   try {
     const response = await originalFetch(...args);
     const duration = Date.now() - startTime;
     console.log(`Response: ${response.status} (${duration}ms)`);
     return response;
   } catch (error) {
-    console.error('Request failed:', error);
+    console.error("Request failed:", error);
     throw error;
   }
 };
 
 // 使用 Reactotron 调试
-import Reactotron from 'reactotron-react-native';
+import Reactotron from "reactotron-react-native";
 
-Reactotron
-  .configure()
+Reactotron.configure()
   .useReactNative({
     networking: {
       ignoreUrls: /symbolicate/,
@@ -923,9 +931,9 @@ Reactotron
   .connect();
 
 // 在代码中使用
-Reactotron.log('Hello World');
+Reactotron.log("Hello World");
 Reactotron.display({
-  name: 'User Data',
+  name: "User Data",
   value: userData,
   preview: userData.name,
 });
@@ -966,7 +974,7 @@ public class CalendarModule extends ReactContextBaseJavaModule {
     public String getName() {
         return "CalendarModule";
     }
-    
+
     @ReactMethod
     public void createEvent(String title, Promise promise) {
         // 创建日历事件
@@ -980,25 +988,27 @@ public class CalendarModule extends ReactContextBaseJavaModule {
 ### 1. React Native 的工作原理是什么？
 
 **核心机制**：
+
 - JS 线程运行 JavaScript 代码
 - Native 线程负责 UI 渲染
 - Bridge 进行异步通信（旧架构）
 - JSI 实现同步通信（新架构）
 
 **渲染流程**：
+
 ```
 JavaScript -> React Reconciliation -> Shadow Tree -> Yoga Layout -> Native Views
 ```
 
 ### 2. 新旧架构的区别？
 
-| 对比项 | 旧架构 | 新架构 |
-|--------|--------|--------|
+| 对比项   | 旧架构                | 新架构               |
+| -------- | --------------------- | -------------------- |
 | 通信方式 | Bridge（异步+序列化） | JSI（同步+直接调用） |
-| 渲染引擎 | 旧渲染器 | Fabric |
-| 原生模块 | NativeModules | TurboModules |
-| 启动方式 | 全量加载 | 按需加载 |
-| 类型安全 | 弱 | 强（CodeGen） |
+| 渲染引擎 | 旧渲染器              | Fabric               |
+| 原生模块 | NativeModules         | TurboModules         |
+| 启动方式 | 全量加载              | 按需加载             |
+| 类型安全 | 弱                    | 强（CodeGen）        |
 
 ### 3. 如何优化 FlatList 性能？
 
@@ -1010,34 +1020,32 @@ JavaScript -> React Reconciliation -> Shadow Tree -> Yoga Layout -> Native Views
     offset: ITEM_HEIGHT * index,
     index,
   })}
-  
   // 2. 优化渲染数量
   initialNumToRender={10}
   maxToRenderPerBatch={5}
   windowSize={5}
-  
   // 3. 移除不可见视图
   removeClippedSubviews={true}
-  
   // 4. 更新优化
   updateCellsBatchingPeriod={50}
-  
   // 5. 使用 keyExtractoror
   keyExtractor={(item) => item.id}
-  
   // 6. 使用 React.memo/ 6. 使用 React.memo
-  renderItem={({ item }) => <MemoizedItem item={item} />}  renderItem={({ item }) => <MemoizedItem item={item} />}
+  renderItem={({ item }) => <MemoizedItem item={item} />}
+  renderItem={({ item }) => <MemoizedItem item={item} />}
 />
-``````
+```
 
 ### 4. useNativeDriver 的原理？
 
 **原理**：
+
 - 动画配置在 JS 线程序列化后发送到 Native- 动画配置在 JS 线程序列化后发送到 Native
 - Native 端独立执行动画，不经过 Bridgee 端独立执行动画，不经过 Bridge
 - 动画运行在 UI 线程，60fps 流畅
 
 **限制**：**限制**：
+
 - 只支持 transform 和 opacityrm 和 opacity
 - 不支持布局属性（width、height、flex 等）属性（width、backgroundColor、flex 等）
 
@@ -1053,14 +1061,15 @@ Animated.timing(value, {ming(value, {
   toValue: 100,oValue: 100,
   useNativeDriver: true, // width、backgroundColor  useNativeDriver: true, // width、backgroundColor
 }).start();
-``````
+```
 
 ### 5. 如何实现 JS 和 Native 的双向通信？S 和 Native 的双向通信？
 
-**JS 调用 Native**：S 调用 Native**：
-```javascript```javascript
+**JS 调用 Native**：S 调用 Native\*\*：
+`javascript`javascript
 NativeModules.MyModule.doSomething()odule.doSomething()
-```
+
+````
 
 **Native 调用 JS**：
 ```javascript```javascript
@@ -1069,25 +1078,26 @@ eventEmitter.addListener('eventName', handler);
 
 // Native 端发送// Native 端发送
 [self sendEventWithName:@"eventName" body:@{@"data": data}];ame:@"eventName" body:@{@"data": data}];
-``````
+````
 
 ### 6. Hermes 引擎的优势？
 
 1. **字节码预编译**：APK 中包含字节码，启动更快，启动更快
-2. **更小的内存占用**：优化的 GC 算法2. **更小的内存占用**：优化的 GC 算法
+2. **更小的内存占用**：优化的 GC 算法 2. **更小的内存占用**：优化的 GC 算法
 3. **更快的启动速度**：减少 50% 启动时间少 50% 启动时间
-4. **更小的体积**：字节码比 JS 源码小4. **更小的体积**：字节码比 JS 源码小
+4. **更小的体积**：字节码比 JS 源码小 4. **更小的体积**：字节码比 JS 源码小
 
 ### 7. 如何调试性能问题？
 
 **工具**：
+
 - Chrome DevTools（JS 性能）
 - Flipper（网络、布局、性能）- Flipper（网络、布局、性能）
 - Xcode Instruments（iOS 深度分析） Instruments（iOS 深度分析）
 - Android Studio Profiler（Android 深度分析）dio Profiler（Android 深度分析）
 
 **方法**：
-```javascript```javascript
+`javascript`javascript
 // 1. 开启性能监视器
 // Dev Menu -> Show Perf Monitor
 
@@ -1095,24 +1105,25 @@ eventEmitter.addListener('eventName', handler);
 import { Profiler } from 'react';
 
 const onRender = (id, phase, actualDuration) => {const onRender = (id, phase, actualDuration) => {
-  console.log(`${id} (${phase}) took ${actualDuration}ms`);actualDuration}ms`);
+console.log(`${id} (${phase}) took ${actualDuration}ms`);actualDuration}ms`);
 };
 
 <Profiler id="App" onRender={onRender}><Profiler id="App" onRender={onRender}>
-  <App />
+<App />
 </Profiler>
 
 // 3. 检测慢渲染/ 3. 检测慢渲染
 if (actualDuration > 16) {(actualDuration > 16) {
-  console.warn('Slow render detected!');  console.warn('Slow render detected!');
+console.warn('Slow render detected!'); console.warn('Slow render detected!');
 }
-``````
+
+````
 
 ### 8. 如何处理大图片？理大图片？
 
 ```javascript
 // 1. 图片压缩
-<Image 
+<Image
   source={{ uri: url }}
   resizeMode="cover"resizeMode="cover"
   // 指定尺寸让系统自动缩放  // 指定尺寸让系统自动缩放
@@ -1135,57 +1146,61 @@ const [imageLoaded, setImageLoaded] = useState(false);eState(false);
 
 <View>
   {!imageLoaded && <PlaceholderImage />}}
-  <Image mage 
+  <Image mage
     source={{ uri: highResUrl }}rce={{ uri: highResUrl }}
     onLoad={() => setImageLoaded(true)} onLoad={() => setImageLoaded(true)}
   />  />
 </View>
-``````
+````
 
 ### 9. 内存泄漏如何排查和避免？泄漏如何排查和避免？
 
 **常见原因**：
+
 - 未清理的定时器
 - 未取消的网络请求- 未取消的网络请求
 - 未移除的事件监听听
 - 闭包引用大对象
 
 **解决方案**：
+
 ```javascript
 useEffect(() => {eEffect(() => {
   const timer = setInterval(() => {}, 1000);setInterval(() => {}, 1000);
   const subscription = eventEmitter.addListener('event', handler);entEmitter.addListener('event', handler);
-  
+
   return () => {turn () => {
     clearInterval(timer);arInterval(timer);
     subscription.remove(); subscription.remove();
   };  };
 }, []);
-``````
+```
 
 ### 10. 如何实现热更新？
 
 **方案**：**方案**：
-1. **CodePush（微软）**（微软）**
+
+1. **CodePush（微软）**（微软）\*\*
 2. **自建方案**
 
-```javascript```javascript
+`javascript`javascript
 // CodePush 示例
 import codePush from 'react-native-code-push';m 'react-native-code-push';
 
 const App = () => {
-  useEffect(() => {
-    codePush.sync({ePush.sync({
-      updateDialog: true,ateDialog: true,
-      installMode: codePush.InstallMode.IMMEDIATE,    installMode: codePush.InstallMode.IMMEDIATE,
-    });
-  }, []);}, []);
-    
-  return <MainApp />;
+useEffect(() => {
+codePush.sync({ePush.sync({
+updateDialog: true,ateDialog: true,
+installMode: codePush.InstallMode.IMMEDIATE, installMode: codePush.InstallMode.IMMEDIATE,
+});
+}, []);}, []);
+
+return <MainApp />;
 };
 
 export default codePush(App);(App);
-``````
+
+````
 
 ### 11. Bridge 的性能瓶颈在哪？
 
@@ -1221,24 +1236,25 @@ import { requireNativeComponent } from 'react-native';import { requireNativeComp
 
 const MyCustomView = requireNativeComponent('MyCustomView');mView = requireNativeComponent('MyCustomView');
 
-<MyCustomView yCustomView 
+<MyCustomView yCustomView
   color="red"olor="red"
   onPress={(event) => console.log(event)}  onPress={(event) => console.log(event)}
 />
-``````
+````
 
 ### 13. Fabric 架构的改进？
 
 **核心改进**：
+
 1. **同步布局**：JS 可以同步读取布局信息
-2. **类型安全**：通过 CodeGen 生成类型2. **类型安全**：通过 CodeGen 生成类型
+2. **类型安全**：通过 CodeGen 生成类型 2. **类型安全**：通过 CodeGen 生成类型
 3. **简化架构**：C++ 统一实现，跨平台共享一实现，跨平台共享
-4. **并发渲染**：支持 React 18 并发特性4. **并发渲染**：支持 React 18 并发特性
+4. **并发渲染**：支持 React 18 并发特性 4. **并发渲染**：支持 React 18 并发特性
 
 ### 14. 如何优化启动时间？动时间？
 
 **策略**：
-```javascript```javascript
+`javascript`javascript
 // 1. 内联 requirequire
 const MyComponent = require('./MyComponent');
 
@@ -1247,15 +1263,16 @@ const Profile = React.lazy(() => import('./Profile'));eact.lazy(() => import('./
 
 // 3. 预加载关键资源
 useEffect(() => {
-  Promise.all([
-    Font.loadAsync({ ... }),t.loadAsync({ ... }),
-    Asset.loadAsync([...]),    Asset.loadAsync([...]),
-  ]).then(() => setReady(true)); setReady(true));
+Promise.all([
+Font.loadAsync({ ... }),t.loadAsync({ ... }),
+Asset.loadAsync([...]), Asset.loadAsync([...]),
+]).then(() => setReady(true)); setReady(true));
 }, []);
 
 // 4. 使用 Hermes// 4. 使用 Hermes
 // 5. 启用 RAM Bundlele
-``````
+
+````
 
 ### 15. 手势冲突如何处理？
 
@@ -1275,27 +1292,30 @@ import { PanGestureHandler, State } from 'react-native-gesture-handler';e } from
 >
   <Animated.View />  <Animated.View />
 </PanGestureHandler>
-``````
+````
 
 ### 16. 解释 Shadow Tree 和 Native Tree 的关系？dow Tree 和 Native Tree 的关系？
 
-**Shadow Tree**：w Tree**：
+**Shadow Tree**：w Tree\*\*：
+
 - 存在于 JS 侧的虚拟树- 存在于 JS 侧的虚拟树
 - 用于 Yoga 布局计算
 - 不直接渲染
 
 **Native Tree**：**Native Tree**：
+
 - 真实的原生 UI 组件树 UI 组件树
 - 根据 Shadow Tree 的布局信息创建据 Shadow Tree 的布局信息创建
 
 **流程**：
+
 ```
 React Element Treeent Tree
     ↓ (React Reconciliation)
 Shadow Tree (Yoga 计算布局)dow Tree (Yoga 计算布局)
     ↓ (映射)    ↓ (映射)
 Native View Hierarchy (UIView/View)iew)
-``````
+```
 
 ### 17. InteractionManager 的作用？r 的作用？
 
@@ -1305,7 +1325,7 @@ Native View Hierarchy (UIView/View)iew)
 const loadData = () => {nst loadData = () => {
   // 立即执行
   showLoadingSpinner();
-  
+
   // 延迟到动画结束后执行
   InteractionManager.runAfterInteractions(() => {erInteractions(() => {
     fetchData().then(data => {chData().then(data => {
@@ -1320,11 +1340,12 @@ const loadData = () => {nst loadData = () => {
 // - 路由转场后加载数据- 路由转场后加载数据
 // - 动画期间延迟重量级操作// - 动画期间延迟重量级操作
 // - 优化用户体验
-``````
+```
 
 ### 18. Metro Bundler 的工作原理？ 18. Metro Bundler 的工作原理？
 
-**核心流程**：流程**：
+**核心流程**：流程\*\*：
+
 ```
 1. 解析入口文件（index.js）析入口文件（index.js）
    ↓
@@ -1340,6 +1361,7 @@ const loadData = () => {nst loadData = () => {
 ```
 
 **优化配置**：
+
 ```javascript
 // metro.config.js
 module.exports = {
@@ -1355,7 +1377,7 @@ module.exports = {
     sourceExts: ['jsx', 'js', 'ts', 'tsx', 'json'], sourceExts: ['jsx', 'js', 'ts', 'tsx', 'json'],
   },  },
 };
-``````
+```
 
 ### 19. 如何实现深度链接（Deep Linking）？现深度链接（Deep Linking）？
 
@@ -1385,12 +1407,12 @@ useEffect(() => {
   const subscription = Linking.addEventListener('url', ({ url }) => {
     handleDeepLink(url);
   });
-  
+
   // 处理冷启动
   Linking.getInitialURL().then(url => {
     if (url) handleDeepLink(url);
   });
-  
+
   return () => subscription.remove();
 }, []);
 
@@ -1406,35 +1428,36 @@ const handleDeepLink = (url) => {
 
 **对比**：
 
-| 特性 | Animated | Reanimated 2 |
-|------|----------|--------------|
-| 运行线程 | JS 线程 | UI 线程 |
-| 性能 | 受 Bridge 影响 | 原生级性能 |
-| 手势集成 | 困难 | 简单 |
-| 复杂动画 | 性能差 | 性能好 |
-| 学习曲线 | 简单 | 较陡 |
+| 特性     | Animated       | Reanimated 2 |
+| -------- | -------------- | ------------ |
+| 运行线程 | JS 线程        | UI 线程      |
+| 性能     | 受 Bridge 影响 | 原生级性能   |
+| 手势集成 | 困难           | 简单         |
+| 复杂动画 | 性能差         | 性能好       |
+| 学习曲线 | 简单           | 较陡         |
 
 **示例**：
+
 ```javascript
 // Reanimated 2
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
 const Box = () => {
   const offset = useSharedValue(0);
-  
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: offset.value }],
   }));
-  
+
   const handlePress = () => {
     // 直接在 UI 线程更新，无延迟
     offset.value = withSpring(offset.value + 100);
   };
-  
+
   return (
     <Animated.View style={animatedStyle}>
       <TouchableOpacity onPress={handlePress}>
@@ -1449,13 +1472,13 @@ const Box = () => {
 
 ```javascript
 // 1. Platform API
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
       },
@@ -1469,12 +1492,12 @@ const styles = StyleSheet.create({
 // 2. 平台特定文件
 // Button.ios.js
 // Button.android.js
-import Button from './Button'; // 自动选择
+import Button from "./Button"; // 自动选择
 
 // 3. 运行时检测
-if (Platform.OS === 'ios') {
+if (Platform.OS === "ios") {
   // iOS 特定逻辑
-} else if (Platform.OS === 'android') {
+} else if (Platform.OS === "android") {
   // Android 特定逻辑
 }
 
@@ -1492,7 +1515,7 @@ const AppContext = createContext();
 
 const appReducer = (state, action) => {
   switch (action.type) {
-    case 'SET_USER':
+    case "SET_USER":
       return { ...state, user: action.payload };
     default:
       return state;
@@ -1509,17 +1532,17 @@ const AppProvider = ({ children }) => {
 };
 
 // 2. Redux
-import { createStore } from 'redux';
-import { Provider } from 'react-redux';
+import { createStore } from "redux";
+import { Provider } from "react-redux";
 
 const store = createStore(rootReducer);
 
 <Provider store={store}>
   <App />
-</Provider>
+</Provider>;
 
 // 3. Zustand（推荐，轻量）
-import create from 'zustand';
+import create from "zustand";
 
 const useStore = create((set) => ({
   user: null,
@@ -1536,20 +1559,16 @@ const Profile = () => {
 ### 23. 如何处理键盘遮挡输入框？
 
 ```javascript
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 
 const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
-      <ScrollView 
+      <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1 }}
       >
@@ -1562,14 +1581,11 @@ const LoginScreen = () => {
 };
 
 // 或使用 react-native-keyboard-aware-scroll-view
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-<KeyboardAwareScrollView
-  enableOnAndroid
-  extraScrollHeight={20}
->
+<KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20}>
   {/* 内容 */}
-</KeyboardAwareScrollView>
+</KeyboardAwareScrollView>;
 ```
 
 ### 24. 如何实现无限滚动列表？
@@ -1580,10 +1596,10 @@ const InfiniteList = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  
+
   const loadMore = async () => {
     if (loading || !hasMore) return;
-    
+
     setLoading(true);
     try {
       const newData = await fetchData(page);
@@ -1594,7 +1610,7 @@ const InfiniteList = () => {
       setLoading(false);
     }
   };
-  
+
   return (
     <FlatList
       data={data}
@@ -1602,9 +1618,7 @@ const InfiniteList = () => {
       keyExtractor={(item) => item.id}
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
-      ListFooterComponent={
-        loading ? <ActivityIndicator /> : null
-      }
+      ListFooterComponent={loading ? <ActivityIndicator /> : null}
     />
   );
 };
@@ -1613,6 +1627,7 @@ const InfiniteList = () => {
 ### 25. 如何优化包体积？
 
 **策略**：
+
 ```bash
 # 1. 分析包体积
 npx react-native-bundle-visualizer
@@ -1648,24 +1663,24 @@ npm prune
 
 ```javascript
 // 1. 网络状态检测
-import NetInfo from '@react-native-community/netinfo';
+import NetInfo from "@react-native-community/netinfo";
 
 const useNetworkStatus = () => {
   const [isConnected, setIsConnected] = useState(true);
-  
+
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(state.isConnected);
     });
-    
+
     return unsubscribe;
   }, []);
-  
+
   return isConnected;
 };
 
 // 2. 数据缓存
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const fetchWithCache = async (url, key) => {
   try {
@@ -1674,11 +1689,11 @@ const fetchWithCache = async (url, key) => {
     if (cached) {
       return JSON.parse(cached);
     }
-    
+
     // 从网络获取
     const response = await fetch(url);
     const data = await response.json();
-    
+
     // 保存到缓存
     await AsyncStorage.setItem(key, JSON.stringify(data));
     return data;
@@ -1690,8 +1705,8 @@ const fetchWithCache = async (url, key) => {
 };
 
 // 3. 使用数据库（WatermelonDB、Realm）
-import { Database } from '@nozbe/watermelondb';
-import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
+import { Database } from "@nozbe/watermelondb";
+import SQLiteAdapter from "@nozbe/watermelondb/adapters/sqlite";
 
 const adapter = new SQLiteAdapter({
   schema,
@@ -1708,10 +1723,10 @@ const database = new Database({
 
 ```javascript
 // 1. Sentry 错误追踪
-import * as Sentry from '@sentry/react-native';
+import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: 'YOUR_DSN',
+  dsn: "YOUR_DSN",
   enableAutoSessionTracking: true,
   tracesSampleRate: 1.0,
 });
@@ -1720,48 +1735,48 @@ Sentry.init({
 const PerformanceMonitor = () => {
   useEffect(() => {
     const startTime = performance.now();
-    
+
     return () => {
       const duration = performance.now() - startTime;
-      logPerformance('ScreenRenderTime', duration);
+      logPerformance("ScreenRenderTime", duration);
     };
   }, []);
 };
 
 // 3. 崩溃报告
-Sentry.captureException(new Error('Something went wrong'));
+Sentry.captureException(new Error("Something went wrong"));
 
 // 4. 用户行为追踪
 Sentry.addBreadcrumb({
-  message: 'User clicked button',
-  category: 'action',
-  level: 'info',
+  message: "User clicked button",
+  category: "action",
+  level: "info",
 });
 ```
 
 ### 28. 如何实现国际化？
 
 ```javascript
-import i18n from 'i18next';
-import { initReactI18next, useTranslation } from 'react-i18next';
+import i18n from "i18next";
+import { initReactI18next, useTranslation } from "react-i18next";
 
 i18n.use(initReactI18next).init({
   resources: {
     en: {
       translation: {
-        welcome: 'Welcome',
-        greeting: 'Hello, {{name}}!',
+        welcome: "Welcome",
+        greeting: "Hello, {{name}}!",
       },
     },
     zh: {
       translation: {
-        welcome: '欢迎',
-        greeting: '你好，{{name}}！',
+        welcome: "欢迎",
+        greeting: "你好，{{name}}！",
       },
     },
   },
-  lng: 'en',
-  fallbackLng: 'en',
+  lng: "en",
+  fallbackLng: "en",
   interpolation: {
     escapeValue: false,
   },
@@ -1769,15 +1784,12 @@ i18n.use(initReactI18next).init({
 
 const App = () => {
   const { t, i18n } = useTranslation();
-  
+
   return (
     <View>
-      <Text>{t('welcome')}</Text>
-      <Text>{t('greeting', { name: 'User' })}</Text>
-      <Button 
-        title="中文" 
-        onPress={() => i18n.changeLanguage('zh')} 
-      />
+      <Text>{t("welcome")}</Text>
+      <Text>{t("greeting", { name: "User" })}</Text>
+      <Button title="中文" onPress={() => i18n.changeLanguage("zh")} />
     </View>
   );
 };
@@ -1816,13 +1828,13 @@ src/
 
 ```javascript
 // 1. 敏感信息加密存储
-import * as Keychain from 'react-native-keychain';
+import * as Keychain from "react-native-keychain";
 
-await Keychain.setGenericPassword('username', 'password');
+await Keychain.setGenericPassword("username", "password");
 
 // 2. API 密钥不要硬编码
 // 使用环境变量
-import Config from 'react-native-config';
+import Config from "react-native-config";
 const API_KEY = Config.API_KEY;
 
 // 3. 使用 HTTPS
@@ -1834,25 +1846,23 @@ const API_KEY = Config.API_KEY;
 
 ```javascript
 // 单元测试（Jest）
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent } from "@testing-library/react-native";
 
-test('button press', () => {
+test("button press", () => {
   const onPress = jest.fn();
-  const { getByText } = render(
-    <Button title="Press me" onPress={onPress} />
-  );
-  
-  fireEvent.press(getByText('Press me'));
+  const { getByText } = render(<Button title="Press me" onPress={onPress} />);
+
+  fireEvent.press(getByText("Press me"));
   expect(onPress).toHaveBeenCalled();
 });
 
 // E2E 测试（Detox）
-describe('Login', () => {
-  it('should login successfully', async () => {
-    await element(by.id('email')).typeText('user@example.com');
-    await element(by.id('password')).typeText('password');
-    await element(by.id('loginButton')).tap();
-    await expect(element(by.text('Welcome'))).toBeVisible();
+describe("Login", () => {
+  it("should login successfully", async () => {
+    await element(by.id("email")).typeText("user@example.com");
+    await element(by.id("password")).typeText("password");
+    await element(by.id("loginButton")).tap();
+    await expect(element(by.text("Welcome"))).toBeVisible();
   });
 });
 ```
@@ -1862,24 +1872,29 @@ describe('Login', () => {
 ### Q1: 详细解释 React Native 新架构（Fabric）的工作原理？
 
 **传统架构问题**：
+
 ```
 JS Thread ──[异步 Bridge]──> Shadow Thread ──> UI Thread
          (JSON 序列化)                (布局计算)
 ```
 
 **新架构 Fabric**：
+
 ```
 JS Thread ──[JSI 同步调用]──> C++ Core ──> UI Thread
          (直接内存访问)      (Fabric)
 ```
 
 **关键改进**：
+
 1. **JSI（JavaScript Interface）**：
+
    - 直接调用 C++，无序列化
    - 支持同步方法
    - 共享内存，零拷贝
 
 2. **Shadow Tree 重构**：
+
    - C++ 实现，跨平台共享
    - 支持优先级调度
    - 可中断渲染
@@ -1891,6 +1906,7 @@ JS Thread ──[JSI 同步调用]──> C++ Core ──> UI Thread
 ### Q2: Hermes 引擎相比 JSC/V8 的优势和劣势？
 
 **优势**：
+
 ```
 启动时间对比：
 JSC:    Source → Parse → Compile → Execute (1000ms)
@@ -1902,12 +1918,14 @@ Hermes: ~25MB ⬇️ 44%
 ```
 
 **技术细节**：
+
 - 预编译字节码（HBC 格式）
 - 优化的 GC（分代回收）
 - 寄存器架构（vs 栈架构）
 - 延迟解析函数
 
 **劣势**：
+
 - 无 JIT，长时间运行性能不如 V8
 - 调试支持相对较弱
 - 某些 ES6+ 特性支持较晚
@@ -1915,62 +1933,68 @@ Hermes: ~25MB ⬇️ 44%
 ### Q3: 如何系统性地定位和解决 React Native 性能问题？
 
 **诊断工具链**：
+
 ```javascript
 // 1. FPS 监控
 const FPSMonitor = () => {
   useEffect(() => {
     let lastTime = performance.now();
     let frames = 0;
-    
+
     const checkFPS = () => {
       frames++;
       const currentTime = performance.now();
-      
+
       if (currentTime >= lastTime + 1000) {
         const fps = (frames * 1000) / (currentTime - lastTime);
-        console.log('FPS:', fps.toFixed(2));
-        
+        console.log("FPS:", fps.toFixed(2));
+
         if (fps < 55) {
-          console.warn('⚠️ Frame drop detected');
+          console.warn("⚠️ Frame drop detected");
         }
-        
+
         frames = 0;
         lastTime = currentTime;
       }
-      
+
       requestAnimationFrame(checkFPS);
     };
-    
+
     checkFPS();
   }, []);
 };
 
 // 2. 渲染性能分析
-import { Profiler } from 'react';
+import { Profiler } from "react";
 
-<Profiler id="ExpensiveComponent" onRender={(id, phase, actualDuration) => {
-  if (actualDuration > 16) { // 超过一帧时间
-    console.warn(`Slow render: ${id} took ${actualDuration}ms`);
-  }
-}}>
+<Profiler
+  id="ExpensiveComponent"
+  onRender={(id, phase, actualDuration) => {
+    if (actualDuration > 16) {
+      // 超过一帧时间
+      console.warn(`Slow render: ${id} took ${actualDuration}ms`);
+    }
+  }}
+>
   <ExpensiveComponent />
-</Profiler>
+</Profiler>;
 
 // 3. JS 线程阻塞检测
 let lastCheckTime = Date.now();
 setInterval(() => {
   const now = Date.now();
   const delay = now - lastCheckTime - 100;
-  
+
   if (delay > 50) {
     console.warn(`JS thread blocked for ${delay}ms`);
   }
-  
+
   lastCheckTime = now;
 }, 100);
 ```
 
 **优化策略**：
+
 1. **列表优化**：虚拟化、getItemLayout、removeClippedSubviews
 2. **动画优化**：useNativeDriver、Reanimated 2
 3. **图片优化**：FastImage、合适尺寸、WebP 格式
@@ -1980,6 +2004,7 @@ setInterval(() => {
 ### Q4: 深入解释 useNativeDriver 的实现原理？
 
 **工作机制**：
+
 ```javascript
 // 1. JS 端配置动画
 Animated.timing(animatedValue, {
@@ -2007,7 +2032,7 @@ Animated.timing(animatedValue, {
   animation.fromValue = config[@"fromValue"];
   animation.toValue = config[@"toValue"];
   animation.duration = [config[@"duration"] doubleValue] / 1000.0;
-  
+
   [layer addAnimation:animation forKey:@"nativeAnimation"];
 }
 
@@ -2017,6 +2042,7 @@ Animated.timing(animatedValue, {
 ```
 
 **为什么只支持 transform 和 opacity？**
+
 - 这些属性由 GPU 加速，不触发布局重排
 - 可以在合成线程直接操作
 - 其他属性（width、backgroundColor）需要重新布局/绘制
@@ -2029,64 +2055,62 @@ const HighPerformanceInfiniteList = () => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  
+
   // 使用 useCallback 避免函数重建
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
-    
+
     setLoading(true);
     try {
       const newData = await fetchData(page);
-      
+
       // 使用函数式更新避免闭包陷阱
-      setData(prev => [...prev, ...newData]);
-      setPage(prev => prev + 1);
+      setData((prev) => [...prev, ...newData]);
+      setPage((prev) => prev + 1);
       setHasMore(newData.length === PAGE_SIZE);
     } catch (error) {
-      console.error('Load failed:', error);
+      console.error("Load failed:", error);
     } finally {
       setLoading(false);
     }
   }, [loading, hasMore, page]);
-  
+
   // 优化 renderItem
-  const renderItem = useCallback(({ item }) => (
-    <MemoizedListItem item={item} />
-  ), []);
-  
+  const renderItem = useCallback(
+    ({ item }) => <MemoizedListItem item={item} />,
+    []
+  );
+
   // 提供精确尺寸避免测量
-  const getItemLayout = useCallback((data, index) => ({
-    length: ITEM_HEIGHT,
-    offset: ITEM_HEIGHT * index,
-    index,
-  }), []);
-  
+  const getItemLayout = useCallback(
+    (data, index) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    []
+  );
+
   // 优化 keyExtractor
   const keyExtractor = useCallback((item) => item.id.toString(), []);
-  
+
   return (
     <FlatList
       data={data}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       getItemLayout={getItemLayout}
-      
       // 性能优化配置
       initialNumToRender={10}
       maxToRenderPerBatch={10}
       windowSize={5}
       removeClippedSubviews={true}
       updateCellsBatchingPeriod={50}
-      
       // 无限滚动
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
-      
       // Footer
-      ListFooterComponent={
-        loading ? <ActivityIndicator size="large" /> : null
-      }
-      
+      ListFooterComponent={loading ? <ActivityIndicator size="large" /> : null}
       // 空状态
       ListEmptyComponent={<EmptyState />}
     />
@@ -2094,36 +2118,44 @@ const HighPerformanceInfiniteList = () => {
 };
 
 // 使用 React.memo 优化列表项
-const MemoizedListItem = React.memo(({ item }) => {
-  // 避免内联函数和对象
-  const handlePress = useCallback(() => {
-    navigation.navigate('Detail', { id: item.id });
-  }, [item.id]);
-  
-  const imageStyle = useMemo(() => ({
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  }), []);
-  
-  return (
-    <TouchableOpacity onPress={handlePress} style={styles.item}>
-      <FastImage 
-        source={{ uri: item.image }} 
-        style={imageStyle}
-        resizeMode="cover"
-      />
-      <View style={styles.content}>
-        <Text numberOfLines={2}>{item.title}</Text>
-        <Text numberOfLines={1}>{item.description}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}, (prevProps, nextProps) => {
-  // 自定义比较逻辑
-  return prevProps.item.id === nextProps.item.id &&
-         prevProps.item.title === nextProps.item.title;
-});
+const MemoizedListItem = React.memo(
+  ({ item }) => {
+    // 避免内联函数和对象
+    const handlePress = useCallback(() => {
+      navigation.navigate("Detail", { id: item.id });
+    }, [item.id]);
+
+    const imageStyle = useMemo(
+      () => ({
+        width: 80,
+        height: 80,
+        borderRadius: 8,
+      }),
+      []
+    );
+
+    return (
+      <TouchableOpacity onPress={handlePress} style={styles.item}>
+        <FastImage
+          source={{ uri: item.image }}
+          style={imageStyle}
+          resizeMode="cover"
+        />
+        <View style={styles.content}>
+          <Text numberOfLines={2}>{item.title}</Text>
+          <Text numberOfLines={1}>{item.description}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  },
+  (prevProps, nextProps) => {
+    // 自定义比较逻辑
+    return (
+      prevProps.item.id === nextProps.item.id &&
+      prevProps.item.title === nextProps.item.title
+    );
+  }
+);
 ```
 
 ## 十、总结
@@ -2138,13 +2170,13 @@ const MemoizedListItem = React.memo(({ item }) => {
 
 ### 性能优化核心
 
-| 优化点 | 方案 | 收益 |
-|--------|------|------|
-| 启动时间 | Hermes + 懒加载 | -50% |
-| 列表滚动 | 虚拟化 + getItemLayout | 60 FPS |
-| 动画流畅度 | useNativeDriver | 原生性能 |
-| 包体积 | Hermes + ProGuard | -40% |
-| 内存占用 | 及时释放 + 图片优化 | -30% |
+| 优化点     | 方案                   | 收益     |
+| ---------- | ---------------------- | -------- |
+| 启动时间   | Hermes + 懒加载        | -50%     |
+| 列表滚动   | 虚拟化 + getItemLayout | 60 FPS   |
+| 动画流畅度 | useNativeDriver        | 原生性能 |
+| 包体积     | Hermes + ProGuard      | -40%     |
+| 内存占用   | 及时释放 + 图片优化    | -30%     |
 
 ### 学习路径建议
 
@@ -2182,6 +2214,7 @@ Level 5: 工程化
 ### 常见面试重点
 
 **必问**：
+
 - [ ] 新旧架构区别
 - [ ] Hermes 引擎特点
 - [ ] Bridge 通信原理
@@ -2189,6 +2222,7 @@ Level 5: 工程化
 - [ ] useNativeDriver 原理
 
 **高频**：
+
 - [ ] 性能优化方案
 - [ ] 内存泄漏排查
 - [ ] 原生模块开发
@@ -2196,6 +2230,7 @@ Level 5: 工程化
 - [ ] 跨平台差异处理
 
 **加分项**：
+
 - [ ] JSI 底层实现
 - [ ] Fabric 架构细节
 - [ ] Yoga 布局引擎
