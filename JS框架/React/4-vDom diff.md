@@ -1,295 +1,189 @@
-# React 虚拟DOM Diff算法详解
+# React Diff 算法原理与源码深度解析
 
-## 一、React 15 - Stack Reconciler
+---
 
-### 1. 基本原理
-- 采用递归方式对比虚拟DOM树
-- 一旦开始无法中断，可能导致主线程阻塞
-- 同步更新，不支持优先级调度
+## 一、设计动机与核心目标
 
-### 2. Diff策略
-- 只对同层节点进行比较，不跨层级比较
-- 不同类型的组件产生不同的树结构
-- 通过key属性标记列表中的元素
+- 解决虚拟 DOM 树高效对比与最小化 DOM 操作问题。
+- 保证 UI 一致性、性能最优、支持高频交互和大规模列表。
+- 支持可中断、优先级调度、并发渲染。
 
-### 3. 更新流程
-1. 从根节点开始，递归对比虚拟DOM
-2. 判断节点类型是否相同
-   - 不同：直接替换整个子树
-   - 相同：更新属性，继续比较子节点
-3. 处理列表节点
-   - 无key：按序遍历更新
-   - 有key：复用已有节点
+---
 
-## 二、React 16 - Fiber Reconciler
+## 二、架构演进与对比（版本区别详解）
 
-### 1. 架构升级
-- 引入Fiber架构，将更新过程分片
-- 支持任务中断与恢复
-- 实现可中断的递归模型
+| 版本     | Diff 模型  | 设计特点               | 性能表现 | 并发/优先级 | 适用场景        |
+| -------- | ---------- | ---------------------- | -------- | ----------- | --------------- |
+| React 15 | Stack 递归 | 同步递归，无法中断     | 一般     | 无          | 小型应用        |
+| React 16 | Fiber 分片 | 可中断/恢复，双缓存    | 流畅     | 基础支持    | 中大型应用      |
+| React 18 | 并发 Fiber | 多版本并行，自动批处理 | 优秀     | 完整支持    | 高并发/复杂交互 |
 
-#### 1.1 Fiber节点结构
+- React 15：递归遍历虚拟 DOM 树，遇到变更直接替换整棵子树，无法中断，性能瓶颈明显。
+- React 16：Fiber 架构，更新过程分片，可中断/恢复，支持优先级调度和双缓存，性能大幅提升。
+- React 18：并发模式，支持多版本 Fiber 树并行构建，自动批处理，智能调度，极大提升交互流畅度和首屏性能。
+
+---
+
+## 三、React Diff 算法原理细化
+
+### 1. 同层对比原则
+
+- 只对同一层级的节点进行比较，不跨层级递归。
+- 节点类型不同直接替换整棵子树。
+
+### 2. key/type 策略
+
+- 列表节点通过 key 唯一标识，优先复用 key/type 都相同的节点。
+- key 相同 type 不同，删除旧节点，插入新节点。
+- 无 key 时按顺序遍历，易导致性能问题。
+
+### 3. 列表优化与 Map 加速
+
+- 构建 key 到旧节点的 Map，遍历新节点时快速查找复用。
+- 未匹配节点删除，剩余新节点插入。
+- 支持节点移动和插入优化，减少 DOM 操作。
+
+### 4. 深度优先遍历与分片执行
+
+- beginWork/completeWork 分片遍历 Fiber 树，支持任务切片和断点恢复。
+- render 阶段可中断，commit 阶段不可中断，保证 DOM 操作原子性。
+
+### 5. 双缓存与优先级调度
+
+- current/workInProgress 双树，alternate 属性连接。
+- Lane 模型表示优先级，Scheduler 调度高优先级任务插队。
+- 所有 DOM 操作在内存中完成，最后一次性提交，避免闪烁和重排。
+
+### 6. 并发切片与自动批处理
+
+- workLoopConcurrent/shouldYield 实现时间切片，主线程流畅。
+- 多次 setState 自动批处理，减少渲染次数。
+- transition 降低优先级，提升交互体验。
+
+---
+
+## 四、源码伪代码与流程图
+
+### Diff 主流程伪代码
+
 ```js
-type Fiber = {
-  // 静态数据结构
-  tag: WorkTag,           // 标记Fiber类型
-  key: null | string,     // 唯一标识
-  elementType: any,       // 元素类型
-  type: any,             // 具体类型
-  stateNode: any,        // DOM节点实例
-
-  // Fiber链表结构
-  return: Fiber | null,   // 父Fiber
-  child: Fiber | null,    // 第一个子Fiber
-  sibling: Fiber | null,  // 下一个兄弟Fiber
-  index: number,         // 子节点序号
-
-  // 动态工作单元
-  pendingProps: any,    // 新的props
-  memoizedProps: any,   // 旧的props
-  memoizedState: any,   // 旧的state
-  updateQueue: any,     // 更新队列
-  
-  // 副作用
-  flags: Flags,         // 标记更新类型
-  subtreeFlags: Flags,  // 子树更新标记
-  deletions: Array<Fiber> | null, // 需要删除的子节点
-  
-  // 调度相关
-  lanes: Lanes,         // 优先级
-  childLanes: Lanes,    // 子节点优先级
-}
-```
-
-#### 1.2 工作原理
-- 将递归过程拆分成小的工作单元
-- 每个工作单元执行完后，检查是否有剩余时间
-- 支持根据优先级中断和恢复任务
-- 维护工作进度，支持断点恢复
-
-### 2. 双缓存树
-- current树：当前页面显示的树
-- workInProgress树：正在构建的新树
-- 通过alternate属性连接对应节点
-
-#### 2.1 双缓存工作流程
-1. 首次渲染
-   - 创建fiberRoot和rootFiber
-   - 基于current树创建workInProgress树
-   - 完成更新后切换fiberRoot.current指针
-
-2. 更新阶段
-   - 复用current树对应节点创建workInProgress节点
-   - 将变更应用到workInProgress树
-   - 完成更新后切换current指针
-
-### 3. Diff改进
-
-#### 3.1 优先级调度
-- 采用Lane模型表示优先级
-- 支持批处理和优先级插队
-- 不同优先级对应不同更新通道：
-  ```js
-  const SyncLane: Lane = /*                     */ 0b0000000000000000000000000000001;
-  const InputContinuousLane: Lane = /*          */ 0b0000000000000000000000000000100;
-  const DefaultLane: Lane = /*                  */ 0b0000000000000000000000000010000;
-  const IdleLane: Lane = /*                    */ 0b0100000000000000000000000000000;
-  ```
-
-#### 3.2 更新阶段
-1. render阶段（可中断）
-   - beginWork：向下遍历，对比节点差异
-   - completeWork：向上回溯，完成节点操作
-   - 采用深度优先遍历，可中断和恢复
-
-2. commit阶段（不可中断）
-   - before mutation：DOM操作前
-   - mutation：执行DOM操作
-   - layout：DOM操作后
-
-#### 3.3 Diff算法优化
-1. 单节点Diff
-   ```js
-   function reconcileSingleElement(
-     returnFiber: Fiber,
-     currentFirstChild: Fiber | null,
-     element: ReactElement
-   ): Fiber {
-     const key = element.key;
-     let child = currentFirstChild;
-     
-     while (child !== null) {
-       // 1. 比较key
-       if (child.key === key) {
-         // 2. 比较type
-         if (child.elementType === element.type) {
-           // 类型相同则复用节点
-           deleteRemainingChildren(returnFiber, child.sibling);
-           const existing = useFiber(child, element.props);
-           existing.return = returnFiber;
-           return existing;
-         }
-         // key相同但type不同，删除所有旧节点
-         deleteRemainingChildren(returnFiber, child);
-         break;
-       } else {
-         deleteChild(returnFiber, child);
-       }
-       child = child.sibling;
-     }
-     
-     // 创建新节点
-     const created = createFiberFromElement(element, returnFiber.mode, lanes);
-     created.return = returnFiber;
-     return created;
-   }
-   ```
-
-2. 多节点Diff
-   - 第一轮：处理更新节点
-   - 第二轮：处理剩余节点
-   - 优化：将节点按key映射，减少比较次数
-
-## 三、React 18 - 并发特性
-
-### 1. 并发渲染
-#### 1.1 基本原理
-- 引入并发模式（Concurrent Mode）
-- 支持多个版本的UI同时存在
-- 实现可中断的渲染
-
-#### 1.2 时间切片
-```js
-function workLoopConcurrent() {
-  while (workInProgress !== null && !shouldYield()) {
-    performUnitOfWork(workInProgress);
+function reconcileChildren(currentFiber, newChildren) {
+  // 1. 单节点/多节点分流
+  if (isSingleElement(newChildren)) {
+    return reconcileSingleElement(
+      currentFiber,
+      currentFiber.child,
+      newChildren
+    );
+  } else if (isArray(newChildren)) {
+    return reconcileChildrenArray(
+      currentFiber,
+      currentFiber.child,
+      newChildren
+    );
   }
 }
-
-function shouldYield() {
-  // 通过调度器判断是否需要让出执行权
-  return scheduler.shouldYield();
-}
 ```
 
-#### 1.3 并发更新
-- 支持多个版本的UI同时准备
-- 可以中断当前更新，优先处理紧急更新
-- 支持放弃已经计算的更新
+### 列表 Diff 伪代码
 
-### 2. 自动批处理
-#### 2.1 实现原理
 ```js
-function batchedUpdates(fn) {
-  const prevIsBatchingUpdates = isBatchingUpdates;
-  isBatchingUpdates = true;
-  try {
-    return fn();
-  } finally {
-    isBatchingUpdates = prevIsBatchingUpdates;
-    if (!isBatchingUpdates) {
-      flushSyncCallbacks();
+function reconcileChildrenArray(returnFiber, currentFirstChild, newChildren) {
+  // 1. 构建key到旧节点的映射
+  const existingChildren = new Map();
+  let oldFiber = currentFirstChild;
+  while (oldFiber !== null) {
+    if (oldFiber.key !== null) {
+      existingChildren.set(oldFiber.key, oldFiber);
+    }
+    oldFiber = oldFiber.sibling;
+  }
+  // 2. 遍历新节点，复用/新建
+  let prevNewFiber = null;
+  for (let i = 0; i < newChildren.length; i++) {
+    const newChild = newChildren[i];
+    const key = newChild.key;
+    let matchedFiber = existingChildren.get(key);
+    if (matchedFiber && matchedFiber.elementType === newChild.type) {
+      // 复用
+      const newFiber = useFiber(matchedFiber, newChild.props);
+      newFiber.return = returnFiber;
+      if (prevNewFiber) prevNewFiber.sibling = newFiber;
+      prevNewFiber = newFiber;
+      existingChildren.delete(key);
+    } else {
+      // 新建
+      const newFiber = createFiberFromElement(
+        newChild,
+        returnFiber.mode,
+        lanes
+      );
+      newFiber.return = returnFiber;
+      if (prevNewFiber) prevNewFiber.sibling = newFiber;
+      prevNewFiber = newFiber;
     }
   }
+  // 3. 删除剩余旧节点
+  existingChildren.forEach((child) => deleteChild(returnFiber, child));
 }
 ```
 
-#### 2.2 优化效果
-- 自动合并多个状态更新
-- 减少不必要的重渲染
-- 支持跨事件批处理
-- 通过transition降低更新优先级
+---
 
-### 3. Diff算法优化
-#### 3.1 启发式更新
-1. 基于历史信息
-   ```js
-   function cloneChildFibers(current, workInProgress) {
-     if (workInProgress.child === null) {
-       return;
-     }
-     
-     let currentChild = workInProgress.child;
-     let newChild = createWorkInProgress(
-       currentChild,
-       currentChild.pendingProps
-     );
-     workInProgress.child = newChild;
-     
-     // 基于历史信息克隆Fiber树
-     while (currentChild.sibling !== null) {
-       currentChild = currentChild.sibling;
-       newChild.sibling = createWorkInProgress(
-         currentChild,
-         currentChild.pendingProps
-       );
-       newChild = newChild.sibling;
-     }
-   }
-   ```
+## 五、性能优化策略与最佳实践
 
-2. 优先级调度
-   - 优先处理用户交互区域
-   - 支持基于Lane模型的优先级排序
-   - 允许高优先级任务打断低优先级任务
+- key 必须稳定唯一，避免数组索引。
+- React.memo、useMemo、useCallback 减少不必要渲染。
+- 组件拆分，合理分层，避免过深嵌套。
+- 列表节点按业务 id 分组，提升 diff 效率。
 
-#### 3.2 选择性注水（Selective Hydration）
-1. 实现原理
-   ```js
-   function hydrateRoot(container, initialChildren) {
-     const root = createHydrateContainer(initialChildren);
-     
-     // 创建选择性注水的Fiber根节点
-     const hydrationCallbacks = {
-       onHydrated: (suspenseNode) => {
-         // 注水完成回调
-       },
-       onDeleted: (suspenseNode) => {
-         // 节点删除回调
-       }
-     };
-     
-     return new ReactDOMRoot(root, hydrationCallbacks);
-   }
-   ```
+---
 
-2. 优化效果
-   - 支持部分内容优先注水
-   - 提升首屏交互性能
-   - 允许用户交互打断注水
-   - 根据视口优先级注水
+## 六、深度面试问答
 
-## 四、版本对比
+### 1. React Diff 算法复杂度是多少？极端场景如何优化？
 
-### 1. 更新机制
-| 特性 | React 15 | React 16 | React 18 |
-|------|----------|-----------|----------|
-| 更新模型 | 同步递归 | Fiber | 并发渲染 |
-| 任务中断 | 不支持 | 支持 | 支持 |
-| 优先级控制 | 无 | 基础支持 | 完整支持 |
-| 批处理 | 部分支持 | 事件内支持 | 全局支持 |
+- 理论复杂度 O(n)，通过 key 映射和同层比较避免 O(n^3)。
+- 极端场景如大规模列表/频繁移动，建议分片渲染、虚拟列表。
 
-### 2. 性能表现
-| 方面 | React 15 | React 16 | React 18 |
-|------|----------|-----------|----------|
-| 大型应用 | 可能卡顿 | 流畅 | 更流畅 |
-| 动画处理 | 易丢帧 | 较好 | 优秀 |
-| 首屏加载 | 一般 | 较快 | 快速 |
-| CPU使用 | 集中 | 分散 | 智能调度 |
+### 2. Fiber Diff 如何支持优先级和并发？
 
-## 五、最佳实践
+- Lane 模型和 Scheduler 调度，支持高优先级插队和任务切片。
+- 并发模式下多版本 Fiber 树并行，保证 UI 一致性。
 
-### 1. key的使用
-- 使用稳定的业务id作为key
-- 避免使用数组索引作为key
-- 不同列表使用不同key前缀
+### 3. Diff 源码中如何处理节点复用与删除？
 
-### 2. 性能优化
-- 合理使用React.memo避免不必要渲染
-- 使用useMemo缓存计算结果
-- 采用useCallback缓存事件处理函数
+- 先按 key/type 复用，未匹配节点删除，剩余新节点插入。
+- 采用 Map 加速查找，减少遍历。
 
-### 3. 组件设计
-- 保持组件纯粹性
-- 合理拆分组件层级
-- 避免过深的组件嵌套
+### 4. 双缓存机制对 Diff 性能的提升？
+
+- 所有变更在 workInProgress 树内存中完成，最后一次性提交。
+- 避免多次 DOM 操作和页面闪烁。
+
+### 5. Diff 算法在并发和自动批处理下的表现？
+
+- 多次 setState 自动批处理，减少渲染次数。
+- 并发渲染时可随时中断和恢复，保证主线程流畅。
+
+---
+
+## 七、React Diff 与 Vue Diff 的区别
+
+| 维度     | React Diff                         | Vue Diff                               |
+| -------- | ---------------------------------- | -------------------------------------- |
+| 对比策略 | 同层对比，key/type 优先，深度优先  | 同层对比，双端指针，最长递增子序列     |
+| 列表处理 | key 映射+Map 加速，复用/插入/删除  | 双端比较+LIS 优化，移动/复用/插入/删除 |
+| 节点复用 | key/type 复用，未匹配直接删除      | key 复用，LIS 优化移动，减少 DOM 操作  |
+| 性能优化 | Fiber 分片、双缓存、优先级调度     | Patch 算法、LIS、静态提升              |
+| 并发支持 | 完整支持（Fiber/Concurrent）       | Vue3 支持异步渲染/调度                 |
+| 设计理念 | 以调度和可中断为核心，适配复杂场景 | 以最小 DOM 操作为核心，适配响应式场景  |
+| 场景适配 | 大型应用、复杂交互、并发渲染       | 响应式 UI、动画、轻量级应用            |
+
+- React Diff 更关注调度、优先级和可中断，适合高并发和复杂交互场景。
+- Vue Diff 更关注最小 DOM 操作和响应式性能，列表 Diff 采用双端指针+LIS 优化，移动节点更高效。
+- React 采用 Fiber 链表结构，支持多版本并行和任务切片；Vue 采用 Patch 递归和静态提升，适合响应式数据流。
+
+---
+
+> 本文系统梳理了 React Diff 算法的底层原理、源码流程、性能优化和深度面试答疑，适合面试和深入学习。

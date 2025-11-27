@@ -1,305 +1,139 @@
-# React Hook 实现原理详解
+# React Hook 实现原理精讲
 
-## 核心概念
+---
 
-### Hook 链表结构
-React 使用链表结构来管理 Hook，每个函数组件对应的 Fiber 节点都有一个 `memoizedState` 属性，指向该组件的 Hook 链表。
+## 1. 为什么需要 Hook？
 
-**链表结构详解**：
-1. 每个Hook都是一个链表节点，通过`next`指针连接
-2. 链表顺序严格对应Hook的调用顺序
-3. React通过这个链表来追踪Hook的状态和更新
+- 解决 class 组件复杂、逻辑分散、难复用的问题。
+- 函数组件 + Hook 让状态和副作用逻辑聚合、易复用、代码更简洁。
+
+---
+
+## 2. Hook 的本质与链表结构
+
+- Hook 本质：为每个组件保存一组状态变量（useState/useEffect 等）。
+- React 用链表（而非数组）保存每个组件的 Hook 状态，支持灵活扩展和并发。
+- 每次渲染，按顺序遍历 Hook 链表，依次读取和更新状态。
+- Hook 必须按相同顺序调用，不能在 if/循环中使用。
 
 ```js
-// Hook 类型定义
-type Hook = {
-  memoizedState: any, // 当前状态
-  baseState: any,    // 初始状态
-  baseQueue: Update<any, any> | null, // 更新队列
-  queue: UpdateQueue<any, any> | null, // 更新队列
-  next: Hook | null  // 下一个 Hook
+// Hook 链表结构
+const hook1 = { state: 0, next: hook2 };
+const hook2 = { state: "", next: hook3 };
+const hook3 = { callback: fn, next: null };
+```
+
+---
+
+## 3. useState/useEffect 实现原理
+
+### useState
+
+- 每个 useState 对应一个 Hook 节点，保存 state 和更新队列。
+- setState 触发时，将更新加入队列，安排组件重新渲染。
+- 渲染时遍历队列，批量处理所有更新。
+
+```js
+function useState(initialState) {
+  // 获取当前 Hook
+  const hook = getCurrentHook();
+  // 初始化或获取状态
+  if (!hook) initHook(initialState);
+  // 处理更新队列
+  processQueue(hook);
+  // 返回状态和 setState
+  return [hook.state, setState];
 }
 ```
 
-**链表操作示例**：
-```js
-// 组件中的Hook调用
-function Example() {
-  const [count, setCount] = useState(0); // Hook节点1
-  const [name, setName] = useState('');  // Hook节点2
-  useEffect(() => {});                  // Hook节点3
-  
-  // 对应的Hook链表：
-  // Hook1 -> Hook2 -> Hook3 -> null
-}
-```
+### useEffect
 
-## useState 实现原理
-
-### 初始化阶段
-1. 首次渲染时，React 会创建 Hook 对象并初始化状态
-2. 返回状态值和更新函数
+- 每个 useEffect 对应一个 Hook 节点，保存回调和依赖。
+- 渲染阶段收集 effect，提交阶段按依赖变化执行/清理。
+- 依赖比较用 Object.is，只有变化才重新执行 effect。
 
 ```js
-function mountState<S>(initialState: S): [S, Dispatch<BasicStateAction<S>>] {
-  // 1. 创建新的Hook对象并添加到链表末尾
-  const hook = mountWorkInProgressHook();
-  
-  // 2. 处理函数式初始状态
-  if (typeof initialState === 'function') {
-    initialState = initialState();
+function useEffect(callback, deps) {
+  const hook = getCurrentHook();
+  if (!hook || depsChanged(hook.deps, deps)) {
+    scheduleEffect(callback);
+    hook.deps = deps;
   }
-  
-  // 3. 初始化Hook的状态值
-  hook.memoizedState = hook.baseState = initialState;
-  
-  // 4. 创建更新队列
-  const queue = {
-    pending: null,       // 未处理的更新
-    dispatch: null,      // 更新函数
-    lastRenderedReducer: basicStateReducer, // 上一次使用的reducer
-    lastRenderedState: (initialState: any) // 上一次渲染后的状态
-  };
-  hook.queue = queue;
-  
-  // 5. 创建并绑定dispatch函数
-  const dispatch = (queue.dispatch = (dispatchSetState.bind(
-    null,
-    currentlyRenderingFiber,
-    queue
-  ): any));
-  b
-  // 6. 返回当前状态和更新函数
-  return [hook.memoizedState, dispatch];
 }
 ```
 
-### 更新阶段
-1. 获取当前 Hook
-2. 应用更新队列中的更新
-3. 返回新状态和更新函数
+---
 
-```js
-function updateState<S>(initialState: S): [S, Dispatch<BasicStateAction<S>>] {
-  // 1. 获取当前Hook
-  const hook = updateWorkInProgressHook();
-  
-  // 2. 获取更新队列b
-  const queue = hook.queue;
-  
-  // 3. 获取当前reducer
-  queue.lastRenderedReducer = basicStateReducer;
-  
-  // 4. 处理所有待处理的更新
-  if (queue.pending !== null) {
-    const first = queue.pending.next;
-    let newState = hook.memoizedState;
-    let update = first;
-    
-    do {
-      // 5. 应用每个更新
-      const action = update.action;
-      newState = basicStateReducer(newState, action);
-      update = update.next;
-    } while (update !== first);
-    
-    // 6. 更新状态
-    hook.memoizedState = newState;
-    queue.lastRenderedState = newState;
-    queue.pending = null;
-  }
-  
-  // 7. 返回新状态和dispatch函数
-  return [hook.memoizedState, queue.dispatch];
-}
+## 4. 顺序调用原因与陷阱
+
+- React 通过调用顺序匹配 Hook 节点，顺序错乱会导致状态错乱。
+- 不能在条件/循环/嵌套函数中调用 Hook。
+- 常见陷阱：闭包陷阱、无限循环。
+
+```jsx
+// 闭包陷阱
+useEffect(() => {
+  setInterval(() => {
+    setCount(count + 1); // count 可能不是最新值
+  }, 1000);
+}, []);
+// 正确写法：setCount(c => c + 1)
 ```
 
-## useEffect 实现原理
+---
 
-### 初始化阶段
-1. 创建 Effect 对象
-2. 将 Effect 添加到 Fiber 的 updateQueue
+## 5. 依赖收集机制与 Object.is
 
-```js
-function mountEffect(
-  create: () => (() => void) | void,
-  deps: Array<mixed> | void | null
-): void {
-  // 1. 创建Effect对象
-  const hook = mountWorkInProgressHook();
-  
-  // 2. 处理依赖项
-  const nextDeps = deps === undefined ? null : deps;
-  
-  // 3. 标记当前Hook为有副作用
-  hook.memoizedState = pushEffect(
-    HookHasEffect | HookPassive, // 副作用标记
-    create,                     // 创建函数
-    undefined,                  // 销毁函数(首次渲染时为空)
-    nextDeps                    // 依赖项
-  );
-}
-```
+- useEffect/useMemo/useCallback 的依赖数组，React 用 Object.is 严格比较每一项。
+- 依赖项变化才会重新执行 effect。
+- 最佳实践：依赖数组必须包含所有用到的外部变量。
 
-### 更新阶段
-1. 比较依赖项
-2. 决定是否需要重新执行 effect
+---
 
-```js
-function updateEffect(
-  create: () => (() => void) | void,
-  deps: Array<mixed> | void | null
-): void {
-  // 1. 获取当前Hook
-  const hook = updateWorkInProgressHook();
-  
-  // 2. 处理依赖项
-  const nextDeps = deps === undefined ? null : deps;
-  
-  // 3. 获取上一次的Effect
-  const prevEffect = hook.memoizedState;
-  
-  // 4. 比较依赖项是否变化
-  if (nextDeps !== null) {
-    const prevDeps = prevEffect.deps;
-    
-    // 5. 如果依赖项未变化，则复用上一次的Effect
-    if (areHookInputsEqual(nextDeps, prevDeps)) {
-      pushEffect(HookPassive, create, undefined, nextDeps);
-      return;
-    }
-  }
-  
-  // 6. 依赖项变化，标记需要重新执行Effect
-  hook.memoizedState = pushEffect(
-    HookHasEffect | HookPassive,
-    create,
-    undefined,
-    nextDeps
-  );
-}
-```
+## 6. 并发特性与自动批处理
 
-## 调度流程
+- React 18 支持并发渲染，Hook 链表结构天然适配。
+- setState/dispatch 支持自动批处理，减少多次渲染。
+- startTransition 标记非紧急更新，提升响应性。
 
-1. **渲染阶段**：
-   - 构建 Hook 链表
-   - 收集 effect
-   - 确定哪些effect需要执行(通过依赖比较)
-   
-2. **提交阶段**：
-   - 执行本次渲染的effect创建函数
-   - 保存返回的清理函数
-   - 对于layout effect，同步执行
-   
-3. **清理阶段**：
-   - 执行上次effect的清理函数
-   - 只在依赖项变化或组件卸载时执行
-   
-**流程图示例**：
-```
-[组件渲染] → [构建Hook链表] → [收集effect]
-    ↓
-[React提交更新] → [执行effect创建函数] → [保存清理函数]
-    ↓
-[组件更新/卸载] → [执行上次清理函数]
-```
+---
 
-## 依赖收集机制
+## 7. 深度面试问答
 
-React 使用 Object.is 比较依赖项数组中的每个值，如果发现变化则重新执行 effect。
+### 1. 为什么 React 用链表实现 Hook？
 
-**依赖比较原理**：
-1. 首次渲染时，保存初始依赖项
-2. 后续渲染时，逐个比较新旧依赖项
-3. 使用Object.is进行严格相等比较
-4. 依赖项变化会触发effect重新执行
+- 链表结构支持动态扩展、插入和删除，适配 Fiber 架构和并发渲染。
+- 并发模式下可同时构建多条 Hook 链表，保证状态一致性。
+- 数组方式虽然简单，但不适合复杂调度和多版本并行。
 
-```js
-function areHookInputsEqual(
-  nextDeps: Array<mixed>,
-  prevDeps: Array<mixed> | null
-) {
-  if (prevDeps === null) {
-    return false;
-  }
+### 2. 为什么 Hook 必须顺序调用？源码原理是什么？
 
-  // 依赖项数量变化直接返回false
-  if (nextDeps.length !== prevDeps.length) {
-    return false;
-  }
+- React 渲染时按调用顺序遍历 Hook 链表，顺序错乱会导致状态错乱。
+- 源码通过 hookIndex 或 next 指针定位当前 Hook，条件/循环中调用会破坏链表结构。
+- 这样保证每次渲染都能正确匹配状态。
 
-  // 逐个比较依赖项
-  for (let i = 0; i < prevDeps.length; i++) {
-    if (Object.is(nextDeps[i], prevDeps[i])) {
-      continue;
-    }
-    return false;
-  }
-  return true;
-}
-```
+### 3. useState/useEffect 的底层实现如何保证批处理和性能？
 
-**最佳实践**：
-1. 包含所有effect中用到的值
-2. 对于对象/数组，考虑使用useMemo/useCallback
-3. 空数组[]表示effect只运行一次
+- setState/dispatch 不会立即更新，而是将更新加入队列，统一批量处理。
+- useEffect 渲染阶段只收集副作用，提交阶段统一执行/清理，避免多次重排。
+- React 18 自动批处理多次 setState，减少渲染次数。
 
-## 闭包陷阱
+### 4. 依赖收集与 Object.is 的设计动机？
 
-由于 Hook 依赖闭包来保存状态，在异步操作中可能会遇到闭包陷阱。解决方案是使用 ref 或函数式更新。
+- Object.is 能区分 NaN、+0/-0，保证依赖比较的准确性。
+- 依赖数组必须包含所有外部变量，才能保证副作用的正确性和性能。
+- 源码层面逐项比较依赖，只有变化才重新执行 effect。
 
-```js
-// 闭包陷阱示例
-function Counter() {
-  const [count, setCount] = useState(0);
+### 5. 并发模式下 Hook 如何保证一致性？
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      // 这里 count 始终是初始值
-      setCount(count + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []); // 依赖项为空
+- 每个 Fiber 节点维护独立的 Hook 链表，支持多版本并行构建。
+- 只有 commit 阶段才切换 current 指针，保证 UI 一致。
+- 并发渲染时，未提交的 Hook 状态不会影响已渲染的 UI。
 
-  // 正确写法
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCount(c => c + 1); // 使用函数式更新
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-}
-```
+### 6. 常见陷阱与源码层解决方案
 
-## 并发模式下的处理
+- 闭包陷阱：setState 推荐用函数式更新，保证拿到最新值。
+- 无限循环：依赖数组不全或 setState 写在 effect 内部。
+- 源码通过依赖比较和 effect 清理机制规避这些问题。
 
-React 18 引入了并发特性，Hook 的实现也做了相应调整：
-1. 优先级调度
-2. 过渡更新
-3. 自动批处理
-
-```js
-// 使用 startTransition 标记非紧急更新
-function App() {
-  const [resource, setResource] = useState(initialResource);
-  const [isPending, startTransition] = useTransition();
-
-  function handleClick() {
-    startTransition(() => {
-      setResource(fetchNextResource());
-    });
-  }
-
-  return (
-    <>
-      <button disabled={isPending} onClick={handleClick}>
-        {isPending ? '加载中...' : '下一页'}
-      </button>
-      <Suspense fallback={<Spinner />}>
-        <ProfilePage resource={resource} />
-      </Suspense>
-    </>
-  );
-}
-```
+---
