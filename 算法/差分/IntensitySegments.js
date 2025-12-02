@@ -1,26 +1,36 @@
-export class IntensitySegments {
+class IntensitySegments {
   #map = new Map();
   defaultValue = 0;
 
+  #cacheEntries = [];  // 缓存排序后的 keys
+  #hasUpdate = true;   // 标记是否需要重新排序
+
+  // 获取排序后的 keys（延迟排序）
   get sortEntries() {
-    return [...this.#map.entries()].sort((a, b) => a[0] - b[0]);
+    if (this.#hasUpdate) {
+      this.#cacheEntries = [...this.#map.entries()].sort((a, b) => a[0] - b[0]);
+      this.#hasUpdate = false;
+    }
+    return this.#cacheEntries;
   }
+
 
   // 计算某个点的值
   getValue(point) {
     let sum = 0;
-    for (const [key, amount] of this.sortEntries) {
-      if (key > point) {
-        break;
+    for (const [key, amount] of this.#map) {
+      if (key <= point) {
+        sum += amount;
       }
-      sum += amount;
     }
+    
 
     return sum;
   }
 
   // default值(0)可以清除
   setValue(point, amount) {
+    this.#hasUpdate = true;
     amount === this.defaultValue
       ? this.#map.delete(point)
       : this.#map.set(point, amount);

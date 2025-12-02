@@ -113,30 +113,9 @@
   // 1 JSON
   JSON.parse(JSON.stringify(obj))
 
-  /*** Structured Clone 结构化克隆算法 ***/
-  // 2. MessageChannel
-  // 优点是能解决循环引用的问题，还支持大量的内置数据类型。
-  // 缺点就是这个方法是异步的。
-  function structuralClone(obj) {
-    return new Promise(resolve => {
-      const {port1, port2} = new MessageChannel();
-      port2.onmessage = ev => resolve(ev.data);
-      port1.postMessage(obj);
-    })
-  }
-  const obj = /* ... */;
-  structuralClone(obj).then(res=>{
-    console.log(res);
-  })
-
-  var obj = {};
-  var b = {obj};
-  obj.b = b
-  var copy = structuralClone(obj);
-  console.log(copy)
-
   // 4. structuredClone，新API
   // https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone
+  const clone = structuredClone(original);
   ```
 
   手写
