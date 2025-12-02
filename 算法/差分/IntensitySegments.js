@@ -27,19 +27,20 @@ export class IntensitySegments {
   }
 
   add(from, to, amount) {
-    // TODO: implement this
+    // 差分数组核心：在起点+amount，在终点-amount
     const fromNewAmount = (this.#map.get(from) || this.defaultValue) + amount;
     const toNewAmount = (this.#map.get(to) || this.defaultValue) - amount;
     this.setValue(from, fromNewAmount);
     this.setValue(to, toNewAmount);
   }
   set(from, to, amount) {
-    // TODO: implement this
+    // 将区间[from, to)设置为amount，先计算需要的调整量，再清除中间的断点
     const fromNewAmount = amount - this.getValue(from);
     const toNewAmount = this.getValue(to) - amount;
     this.setValue(from, fromNewAmount);
     this.setValue(to, toNewAmount);
 
+    // 清除区间内的中间断点
     for (const [point] of this.#map) {
       if (point > from && point < to) {
         this.#map.delete(point);
@@ -47,13 +48,14 @@ export class IntensitySegments {
     }
   }
   toString() {
-    // TODO: implement this
+    // 前缀和计算：累加差分数组得到每个断点的实际值
     const res = [];
     let sum = 0;
-    // console.log("this.sortEntries >>>> ", this.sortEntries);
+
     for (const [point, amount] of this.sortEntries) {
       sum += amount;
 
+      // 特殊处理：无穷大的点如果值为0则跳过
       if ([Infinity, -Infinity].includes(point) && sum === 0) {
         continue;
       }
