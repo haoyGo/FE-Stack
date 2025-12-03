@@ -1,75 +1,176 @@
 class IntensitySegments {
-  #map = new Map();
   defaultValue = 0;
+  root = null;
 
-  #cacheEntries = [];  // 缓存排序后的 keys
-  #hasUpdate = true;   // 标记是否需要重新排序
-
-  // 获取排序后的 keys（延迟排序）
-  get sortEntries() {
-    if (this.#hasUpdate) {
-      this.#cacheEntries = [...this.#map.entries()].sort((a, b) => a[0] - b[0]);
-      this.#hasUpdate = false;
-    }
-    return this.#cacheEntries;
-  }
-
-
-  // 计算某个点的值
+  // 计算某个点之前的累计值（不包括该点）
   getValue(point) {
     let sum = 0;
-    for (const [key, amount] of this.#map) {
-      if (key <= point) {
-        sum += amount;
-      }
+    let tmp = this.root;
+    while (tmp && tmp.key < point) {
+      sum += tmp.val;
+      tmp = tmp.next;
     }
-    
-
     return sum;
   }
 
-  // default值(0)可以清除
+  // 设置或插入某个点的差分值
   setValue(point, amount) {
-    this.#hasUpdate = true;
-    amount === this.defaultValue
-      ? this.#map.delete(point)
-      : this.#map.set(point, amount);
+    let tmp = this.root,
+      prev = null;
+
+    while (tmp) {
+      if (tmp.key === point) {
+        tmp.val = amount;
+        return;
+      }
+      if (tmp.key > point) {
+        break;
+      }
+      prev = tmp;
+      tmp = tmp.next;
+    }
+
+    // 插入新节点
+    const newNode = { key: point, val: amount, next: tmp };
+    if (prev) {
+      prev.next = newNode;
+    } else {
+      this.root = newNode;
+    }
   }
 
   add(from, to, amount) {
-    // 差分数组核心：在起点+amount，在终点-amount
-    const fromNewAmount = (this.#map.get(from) || this.defaultValue) + amount;
-    const toNewAmount = (this.#map.get(to) || this.defaultValue) - amount;
-    this.setValue(from, fromNewAmount);
-    this.setValue(to, toNewAmount);
-  }
-  set(from, to, amount) {
-    // 将区间[from, to)设置为amount，先计算需要的调整量，再清除中间的断点
-    const fromNewAmount = amount - this.getValue(from);
-    const toNewAmount = this.getValue(to) - amount;
-    this.setValue(from, fromNewAmount);
-    this.setValue(to, toNewAmount);
+    if (!this.root) {
+      this.root = {
+        key: from,
+        val: amount,
+        next: {
+          key: to,
+          val: -amount,
+          next: null,
+        },
+      };
+      return;
+    }
 
-    // 清除区间内的中间断点
-    for (const [point] of this.#map) {
-      if (point > from && point < to) {
-        this.#map.delete(point);
+    let tmp = this.root,
+      prev = null,
+      fromAdded = false,
+      toAdded = false;
+
+    while (tmp) {
+      if (!fromAdded) {
+        if (tmp.key === from) {
+          tmp.val += amount;
+          fromAdded = true;
+        } else if (tmp.key > from) {
+          if (prev === null) {
+            this.root = {
+              key: from,
+              val: amount,
+              next: tmp,
+            };
+            prev = this.root;
+          } else {
+            prev.next = {
+              key: from,
+              val: amount,
+              next: tmp,
+            };
+            prev = prev.next;
+          }
+          fromAdded = true;
+        }
+      }
+
+      if (!toAdded) {
+        if (tmp.key === to) {
+          tmp.val -= amount;
+          toAdded = true;
+          break;
+        } else if (tmp.key > to) {
+          prev.next = {
+            key: to,
+            val: -amount,
+            next: tmp,
+          };
+          toAdded = true;
+          break;
+        }
+      }
+
+      prev = tmp;
+      tmp = tmp.next;
+    }
+
+    if (!fromAdded && !toAdded) {
+      prev.next = {
+        key: from,
+        val: amount,
+        next: {
+          key: to,
+          val: -amount,
+          next: null,
+        },
+      };
+    } else if (!toAdded) {
+      prev.next = {
+        key: to,
+        val: -amount,
+        next: null,
+      };
+    }
+
+    // console.log("this.root >>>> ", this.root);
+  }
+
+  set(from, to, amount) {
+    const fromDiff = amount - this.getValue(from);
+    const toDiff = this.getValue(to) - amount;
+
+    // 删除 (from, to) 区间内的中间节点
+    let tmp = this.root,
+      prev = null;
+    while (tmp) {
+      if (tmp.key > from && tmp.key < to) {
+        if (prev) {
+          prev.next = tmp.next;
+        } else {
+          this.root = tmp.next;
+        }
+        tmp = prev ? prev.next : this.root;
+      } else {
+        prev = tmp;
+        tmp = tmp.next;
       }
     }
+
+    this.setValue(from, fromDiff);
+    this.setValue(to, toDiff);
   }
+
   toString() {
-    // 前缀和计算：累加差分数组得到每个断点的实际值
     const res = [];
     let sum = 0;
+    let prevSum = 0;
 
-    for (const [point, amount] of this.sortEntries) {
-      sum += amount;
+    let tmp = this.root;
+    while (tmp) {
+      prevSum = sum;
+      sum += tmp.val;
 
-      // 特殊处理：无穷大的点如果值为0则跳过
-      if ([Infinity, -Infinity].includes(point) && sum === 0) {
+      // 跳过无穷大的点且值为0的情况
+      if ([Infinity, -Infinity].includes(tmp.key) && sum === 0) {
+        tmp = tmp.next;
         continue;
       }
-      res.push([point, sum]);
+
+      // 如果当前sum不为0，或者是从非0变为0（区间结束点），则保留
+      if (sum !== 0 || (sum === 0 && prevSum !== 0)) {
+        res.push([tmp.key, sum]);
+      }
+
+      tmp = tmp.next;
     }
 
     console.log("res >>>> ", res);
@@ -77,7 +178,6 @@ class IntensitySegments {
   }
 }
 // Here is an example sequence:
-// (data stored as an array of start point and value for each segment.)
 const segments1 = new IntensitySegments();
 segments1.toString(); // Should be "[]"
 segments1.add(10, 30, 1);
