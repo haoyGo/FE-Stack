@@ -163,93 +163,93 @@
 
 - 防抖
 
-```js
-// 防抖
-function debounce(fn, delay = 300, immediate = false) {
-  if (typeof fn !== "function") {
-    throw new TypeError("第一个参数必须是函数");
-  }
-
-  let timer = null;
-
-  return function debounced(...args) {
-    const context = this;
-
-    // 清除之前的定时器
-    if (timer) {
-      clearTimeout(timer);
+  ```js
+  // 防抖
+  function debounce(fn, delay = 300, immediate = false) {
+    if (typeof fn !== "function") {
+      throw new TypeError("第一个参数必须是函数");
     }
 
-    if (immediate) {
-      // 立即执行模式
-      // 如果 timer 不存在，说明是第一次触发或者已经执行过了，可以立即执行
-      const callNow = !timer;
+    let timer = null;
 
-      timer = setTimeout(() => {
-        timer = null; // 重置 timer，允许下次立即执行
-      }, delay);
+    return function debounced(...args) {
+      const context = this;
 
-      if (callNow) {
-        fn.apply(context, args);
+      // 清除之前的定时器
+      if (timer) {
+        clearTimeout(timer);
       }
-    } else {
-      // 延迟执行模式
-      timer = setTimeout(() => {
-        fn.apply(context, args);
-        timer = null;
-      }, delay);
-    }
-  };
-}
-```
 
----
+      if (immediate) {
+        // 立即执行模式
+        // 如果 timer 不存在，说明是第一次触发或者已经执行过了，可以立即执行
+        const callNow = !timer;
+
+        timer = setTimeout(() => {
+          timer = null; // 重置 timer，允许下次立即执行
+        }, delay);
+
+        if (callNow) {
+          fn.apply(context, args);
+        }
+      } else {
+        // 延迟执行模式
+        timer = setTimeout(() => {
+          fn.apply(context, args);
+          timer = null;
+        }, delay);
+      }
+    };
+  }
+  ```
+
+
 
 - 节流
 
-```js
-const throttle = (fn, millSec) => {
-  const now = Date.now();
-  return function (...args) {
-    const context = this;
-    if (Date.now() - now >= millSec) {
-      now = Date.now();
-      return fn.apply(context, args);
-    }
-  };
-};
-
-// 定时器版
-
-function throttle(fn, delay = 300, immediate = false) {
-  if (typeof fn !== "function") {
-    throw new TypeError("第一个参数必须是函数");
-  }
-
-  let timer = null;
-
-  return function (...args) {
-    const context = this;
-
-    if (!timer) {
-      // immediate 为 true 时立即执行
-      if (immediate) {
-        fn.apply(context, args);
+  ```js
+  const throttle = (fn, millSec) => {
+    const now = Date.now();
+    return function (...args) {
+      const context = this;
+      if (Date.now() - now >= millSec) {
+        now = Date.now();
+        return fn.apply(context, args);
       }
+    };
+  };
 
-      timer = setTimeout(() => {
-        // immediate 为 false 时延迟执行
-        if (!immediate) {
+  // 定时器版
+
+  function throttle(fn, delay = 300, immediate = false) {
+    if (typeof fn !== "function") {
+      throw new TypeError("第一个参数必须是函数");
+    }
+
+    let timer = null;
+
+    return function (...args) {
+      const context = this;
+
+      if (!timer) {
+        // immediate 为 true 时立即执行
+        if (immediate) {
           fn.apply(context, args);
         }
-        timer = null;
-      }, delay);
-    }
-  };
-}
-```
 
----
+        timer = setTimeout(() => {
+          // immediate 为 false 时延迟执行
+          if (!immediate) {
+            fn.apply(context, args);
+          }
+          timer = null;
+        }, delay);
+      }
+    };
+  }
+  ```
+
+
 
 - curry
 
@@ -259,15 +259,36 @@ function throttle(fn, delay = 300, immediate = false) {
       if (args.length >= func.length) {
         return func.apply(this, args);
       } else {
+        const that = this
         return function (...args2) {
-          return curried.apply(this, args.concat(args2));
+          return curried.apply(that, args.concat(args2));
         };
       }
     };
   }
   ```
 
-  ***
+
+- promisify
+
+  ```js
+  // 将 callback 风格的函数转换为 Promise 风格
+  function promisify(fn) {
+    return function (...args) {
+      return new Promise((resolve, reject) => {
+        // 添加 callback 函数作为最后一个参数
+        fn(...args, (err, data) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(data);
+          }
+        });
+      });
+    };
+  }
+  ```
+
 
 - [eventEmitter](../read-code/emitter/emitter.md)
 
@@ -339,51 +360,6 @@ function throttle(fn, delay = 300, immediate = false) {
   function Constructor(...rest) {
     if (!(this instanceof Constructor)) return new Constructor(...rest);
   }
-  ```
-
-  ***
-
-- 函数重写（可用于单例模式）
-  当函数有一些初始化操作，并且希望只执行一次，则可以使用这种模式。
-
-  ```javascript
-  function fn() {
-    console.log("Initial");
-
-    fn = function () {
-      console.log("Override");
-    };
-  }
-
-  fn(); // 'Initial'
-  fn(); // 'Override'
-  ```
-
-  ***
-
-- 函数缓存
-  函数也是对象，可以添加属性。
-
-  ```javascript
-  function fn(params) {
-      if (!fn.cache[params]) {
-          const res
-          // ... res 计算
-          fn.cache[params] = res
-      }
-
-      return fn.cache[params]
-  }
-
-  fn.cache = {}
-  ```
-
-  ***
-
-- 快速生成排列数组
-
-  ```javascript
-  [...Array(10).keys()]; // [0,1,2,3,4,5,6,7,8,9]
   ```
 
   ***
