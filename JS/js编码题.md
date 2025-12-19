@@ -289,6 +289,20 @@
   }
   ```
 
+- middlewares
+  ```js
+  function middlewares(...fns) {
+    // throw 'Not implemented!';
+    const n = fns.length
+    return async function innerFn(context, i = 0) {
+      if (i === n) {
+        return Promise.resolve()
+      };
+      const fn = fns[i]
+      return fn(context, () => innerFn(context, i + 1))
+    }
+  }
+  ```
 
 - [eventEmitter](../read-code/emitter/emitter.md)
 
