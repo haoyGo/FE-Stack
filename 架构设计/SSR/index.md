@@ -149,3 +149,145 @@ getLCP(sendToAnalytics); // 最大内容绘制
 ```
 
 ---
+
+## SSR vs SSG vs ISR 技术对比
+
+### 对比表
+
+| 维度       | CSR          | SSR      | SSG        | ISR               |
+| ---------- | ------------ | -------- | ---------- | ----------------- |
+| 渲染时机   | 浏览器运行时 | 每次请求 | 构建时     | 构建时 + 定期更新 |
+| 首屏速度   | 慢           | 快       | 最快       | 最快              |
+| SEO        | 差           | 优秀     | 完美       | 完美              |
+| 服务器压力 | 无           | 高       | 无         | 低                |
+| 数据实时性 | 实时         | 实时     | 构建时数据 | 准实时            |
+| 适用场景   | 管理后台     | 新闻资讯 | 博客文档   | 电商平台          |
+
+### 场景选型
+
+**电商产品详情页（ISR 方案）**
+
+```javascript
+export async function getStaticProps({ params }) {
+  const product = await fetchProduct(params.id);
+
+  return {
+    props: { product },
+    revalidate: 300, // 5分钟更新
+  };
+}
+
+function ProductPage({ product }) {
+  // 动态数据走客户端
+  const { data } = useSWR(`/api/products/${product.id}/live`);
+
+  return (
+    <>
+      <ProductInfo {...product} />
+      <ProductPrice price={data?.price} />
+    </>
+  );
+}
+```
+
+## 高并发 SSR 架构
+
+### 架构设计
+
+```
+CDN边缘缓存 → 负载均衡(Nginx) → SSR集群(Node.js) → Redis缓存 → 数据库
+```
+
+### 核心配置
+
+**Nginx 负载均衡**
+
+```nginx
+upstream ssr_backend {
+    least_conn;
+    server ssr1:3000 weight=1;
+    server ssr2:3000 weight=1;
+}
+
+server {
+    location / {
+        proxy_cache ssr_cache;
+        proxy_cache_valid 200 5m;
+        proxy_pass http://ssr_backend;
+    }
+}
+```
+
+**Node.js 集群**
+
+```javascript
+import cluster from "cluster";
+
+if (cluster.isPrimary) {
+  for (let i = 0; i < os.cpus().length; i++) {
+    cluster.fork();
+  }
+} else {
+  const app = express();
+  app.get("*", async (req, res) => {
+    const html = await renderPage(req);
+    res.send(html);
+  });
+  app.listen(3000);
+}
+```
+
+## 监控与告警
+
+### 性能监控
+
+```javascript
+// Web Vitals
+export function reportWebVitals(metric) {
+  sendToAnalytics({
+    name: metric.name,
+    value: metric.value,
+  });
+
+  // 告警
+  if (metric.name === "LCP" && metric.value > 2500) {
+    sendAlert("LCP too high", metric);
+  }
+}
+```
+
+### 错误监控
+
+```javascript
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 0.1,
+});
+
+app.use((err, req, res, next) => {
+  Sentry.captureException(err);
+  res.status(500).send("Error");
+});
+```
+
+## 灰度发布
+
+```javascript
+// Nginx灰度配置
+split_clients "$remote_addr" $backend {
+    5% ssr_canary;
+    * ssr_stable;
+}
+
+// 自动回滚
+setInterval(async () => {
+  const errorRate = await getCanaryErrorRate();
+  if (errorRate > threshold) {
+    await rollbackCanary();
+  }
+}, 60000);
+```
+
+---

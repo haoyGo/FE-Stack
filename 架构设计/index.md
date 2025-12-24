@@ -112,6 +112,13 @@ export default {
 
 ### 8.4 依赖分析工具
 
+| 需求     | npm          | pnpm               |
+| -------- | ------------ | ------------------ |
+| 安全审计 | npm audit    | pnpm audit         |
+| 依赖过期 | npm outdated | pnpm outdated      |
+| 交互检查 | npm-check    | pnpm dlx npm-check |
+| 自动升级 | npm update   | pnpm update        |
+
 #### npm-check / npm-check-updates
 
 ```bash
@@ -127,6 +134,13 @@ ncu -u
 ```bash
 # 检测未使用的依赖
 npx depcheck
+```
+
+#### npm audit / pnpm audit
+
+```bash
+npm audit fix
+pnpm audit fix
 ```
 
 **功能**：
@@ -257,6 +271,8 @@ npm audit fix # 自动修复
 ### 8.7 性能分析工具
 
 #### Chrome DevTools Performance
+
+Main, Network, Frames, Animations, GPU, FCP, LCP
 
 **核心指标**：
 
