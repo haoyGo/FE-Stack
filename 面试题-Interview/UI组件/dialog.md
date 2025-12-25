@@ -1,33 +1,12 @@
-# Modal Dialog 模态对话框组件
+# Modal Dialog 模态对话框
 
-> 实现一个功能完整的模态对话框组件，支持遮罩层、动画、键盘操作、焦点管理等功能
+> 功能完整的模态对话框：遮罩层、动画、键盘操作、焦点管理、多层嵌套
 
-## 一、效果预览
-
-```
-┌─────────────────────────────────────────┐
-│         Page Content (Blur)            │
-│    ┌─────────────────────────────┐     │
-│    │  ✕  Dialog Title            │     │
-│    ├─────────────────────────────┤     │
-│    │                             │     │
-│    │   Dialog Content...         │     │
-│    │                             │     │
-│    ├─────────────────────────────┤     │
-│    │         [Cancel] [Confirm]  │     │
-│    └─────────────────────────────┘     │
-│           ◼◼◼ Overlay ◼◼◼             │
-└─────────────────────────────────────────┘
-```
-
-## 二、基础实现（React）
-
-### 2.1 简单版本
+## 一、基础实现
 
 ```tsx
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import './Dialog.css';
 
 interface DialogProps {
   open: boolean;
@@ -35,783 +14,247 @@ interface DialogProps {
   title?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  closeOnOverlayClick?: boolean;
-  closeOnEsc?: boolean;
-  showCloseButton?: boolean;
 }
 
-function Dialog({
-  open,
-  onClose,
-  title,
-  children,
-  footer,
-  closeOnOverlayClick = true,
-  closeOnEsc = true,
-  showCloseButton = true,
-}: DialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  // ESC 键关闭
+function Dialog({ open, onClose, title, children, footer }: DialogProps) {
   useEffect(() => {
-    if (!open || !closeOnEsc) return;
-
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
+    if (!open) return;
+    const handleEsc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
-  }, [open, closeOnEsc, onClose]);
-
-  // 点击遮罩层关闭
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (closeOnOverlayClick && e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  // 阻止滚动穿透
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-
+    document.body.style.overflow = 'hidden';
     return () => {
+      document.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = '';
     };
-  }, [open]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
   return ReactDOM.createPortal(
-    <div className="dialog-overlay" onClick={handleOverlayClick}>
-      <div 
-        className="dialog" 
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={title ? 'dialog-title' : undefined}
-      >
-        {/* 头部 */}
-        {(title || showCloseButton) && (
+    <div className="dialog-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="dialog" role="dialog" aria-modal="true">
+        {title && (
           <div className="dialog-header">
-            {title && (
-              <h2 id="dialog-title" className="dialog-title">
-                {title}
-              </h2>
-            )}
-            {showCloseButton && (
-              <button
-                className="dialog-close"
-                onClick={onClose}
-                aria-label="Close dialog"
-              >
-                ✕
-              </button>
-            )}
+            <h2>{title}</h2>
+            <button onClick={onClose}>✕</button>
           </div>
         )}
-
-        {/* 内容 */}
-        <div className="dialog-content">
-          {children}
-        </div>
-
-        {/* 底部 */}
-        {footer && (
-          <div className="dialog-footer">
-            {footer}
-          </div>
-        )}
+        <div className="dialog-content">{children}</div>
+        {footer && <div className="dialog-footer">{footer}</div>}
       </div>
     </div>,
     document.body
   );
 }
-
-export default Dialog;
 ```
 
-### 2.2 基础 CSS
+**样式**
 
 ```css
-/* Dialog.css */
-
-/* 遮罩层 */
 .dialog-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
 }
 
-/* 对话框主体 */
 .dialog {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 
-/* 头部 */
 .dialog-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
 }
 
-.dialog-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.dialog-close {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 20px;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.dialog-close:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-/* 内容 */
 .dialog-content {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
 }
 
-/* 底部 */
 .dialog-footer {
   display: flex;
-  align-items: center;
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #eee;
 }
-
-/* 响应式 */
-@media (max-width: 640px) {
-  .dialog {
-    max-width: 100%;
-    margin: auto 16px;
-  }
-
-  .dialog-header {
-    padding: 16px;
-  }
-
-  .dialog-content {
-    padding: 16px;
-  }
-
-  .dialog-footer {
-    padding: 12px 16px;
-  }
-}
-```
-
-### 2.3 使用示例
-
-```tsx
-import React, { useState } from 'react';
-import Dialog from './Dialog';
-
-function App() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div>
-      <button onClick={() => setOpen(true)}>
-        Open Dialog
-      </button>
-
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        title="Delete Confirmation"
-        footer={
-          <>
-            <button onClick={() => setOpen(false)}>
-              Cancel
-            </button>
-            <button 
-              onClick={() => {
-                console.log('Confirmed');
-                setOpen(false);
-              }}
-              className="btn-primary"
-            >
-              Confirm
-            </button>
-          </>
-        }
-      >
-        <p>Are you sure you want to delete this item?</p>
-        <p>This action cannot be undone.</p>
-      </Dialog>
-    </div>
-  );
-}
-
-export default App;
 ```
 
 ---
 
-## 三、进阶功能
-
-### 3.1 添加动画效果
+## 二、动画效果
 
 ```tsx
-import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
-import './DialogAnimated.css';
-
-interface DialogProps {
-  open: boolean;
-  onClose: () => void;
-  title?: string;
-  children: React.ReactNode;
-  animationType?: 'fade' | 'slide' | 'zoom' | 'slideUp';
-}
-
-function DialogAnimated({
-  open,
-  onClose,
-  title,
-  children,
-  animationType = 'fade',
-}: DialogProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
+function AnimatedDialog({ open, onClose, ...props }: DialogProps) {
+  const [visible, setVisible] = useState(false);
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setIsVisible(true);
-      // 延迟触发动画，确保 DOM 已渲染
-      requestAnimationFrame(() => {
-        setIsAnimating(true);
-      });
+      setVisible(true);
+      requestAnimationFrame(() => setActive(true));
     } else {
-      setIsAnimating(false);
-      // 等待动画结束后移除 DOM
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-      }, 300); // 与 CSS 动画时长一致
-
-      return () => clearTimeout(timer);
+      setActive(false);
+      setTimeout(() => setVisible(false), 300);
     }
   }, [open]);
 
-  const handleClose = () => {
-    setIsAnimating(false);
-    setTimeout(onClose, 300);
-  };
-
-  if (!isVisible) return null;
+  if (!visible) return null;
 
   return ReactDOM.createPortal(
-    <div 
-      className={`dialog-overlay ${isAnimating ? 'active' : ''} animation-${animationType}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-    >
-      <div className="dialog" role="dialog" aria-modal="true">
-        <div className="dialog-header">
-          {title && <h2 className="dialog-title">{title}</h2>}
-          <button className="dialog-close" onClick={handleClose}>
-            ✕
-          </button>
-        </div>
-        <div className="dialog-content">{children}</div>
-      </div>
+    <div className={`dialog-overlay ${active ? 'active' : ''}`}>
+      <div className="dialog">{/* ... */}</div>
     </div>,
     document.body
   );
 }
-
-export default DialogAnimated;
 ```
 
-### 3.2 动画 CSS
-
 ```css
-/* DialogAnimated.css */
+/* 动画样式 */
+.dialog-overlay, .dialog { transition: all 0.3s ease; }
+.dialog-overlay { opacity: 0; }
+.dialog-overlay.active { opacity: 1; }
+.dialog { transform: scale(0.9); opacity: 0; }
+.dialog-overlay.active .dialog { transform: scale(1); opacity: 1; }
 
-/* 基础样式 */
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-  transition: opacity 0.3s ease;
-}
-
-.dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ========== 淡入淡出 ========== */
-.animation-fade .dialog-overlay {
-  opacity: 0;
-}
-
-.animation-fade.active .dialog-overlay {
-  opacity: 1;
-}
-
-.animation-fade .dialog {
-  opacity: 0;
-}
-
-.animation-fade.active .dialog {
-  opacity: 1;
-}
-
-/* ========== 缩放 ========== */
-.animation-zoom .dialog {
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-.animation-zoom.active .dialog {
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* ========== 从上滑入 ========== */
-.animation-slide .dialog {
-  opacity: 0;
-  transform: translateY(-50px);
-}
-
-.animation-slide.active .dialog {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ========== 从下滑入 ========== */
-.animation-slideUp .dialog {
-  opacity: 0;
-  transform: translateY(50px);
-}
-
-.animation-slideUp.active .dialog {
-  opacity: 1;
-  transform: translateY(0);
-}
+/* 滑入效果 */
+.slide .dialog { transform: translateY(-50px); }
+.slide.active .dialog { transform: translateY(0); }
 ```
 
 ---
 
-### 3.3 焦点管理（Focus Trap）
+## 三、焦点管理
 
 ```tsx
-import React, { useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom';
-
 function useFocusTrap(open: boolean) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const previousActiveElement = useRef<HTMLElement | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const prevFocus = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!open) return;
-
-    // 保存当前焦点元素
-    previousActiveElement.current = document.activeElement as HTMLElement;
-
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    // 获取所有可聚焦元素
-    const focusableElements = dialog.querySelectorAll<HTMLElement>(
+    if (!open || !ref.current) return;
+    
+    prevFocus.current = document.activeElement as HTMLElement;
+    const focusable = ref.current.querySelectorAll<HTMLElement>(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    // 初始聚焦到第一个元素
-    firstElement?.focus();
-
-    // Tab 键焦点循环
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    
+    first?.focus();
+    
     const handleTab = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
-
-      if (e.shiftKey) {
-        // Shift + Tab
-        if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement?.focus();
-        }
-      } else {
-        // Tab
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement?.focus();
-        }
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
       }
     };
-
-    dialog.addEventListener('keydown', handleTab);
-
+    
+    ref.current.addEventListener('keydown', handleTab);
     return () => {
-      dialog.removeEventListener('keydown', handleTab);
-      // 恢复之前的焦点
-      previousActiveElement.current?.focus();
+      ref.current?.removeEventListener('keydown', handleTab);
+      prevFocus.current?.focus();
     };
   }, [open]);
 
-  return dialogRef;
-}
-
-function FocusTrapDialog({ open, onClose, title, children }: DialogProps) {
-  const dialogRef = useFocusTrap(open);
-
-  if (!open) return null;
-
-  return ReactDOM.createPortal(
-    <div className="dialog-overlay" onClick={(e) => {
-      if (e.target === e.currentTarget) onClose();
-    }}>
-      <div 
-        ref={dialogRef}
-        className="dialog" 
-        role="dialog" 
-        aria-modal="true"
-        aria-labelledby="dialog-title"
-      >
-        <div className="dialog-header">
-          <h2 id="dialog-title" className="dialog-title">{title}</h2>
-          <button className="dialog-close" onClick={onClose}>✕</button>
-        </div>
-        <div className="dialog-content">{children}</div>
-      </div>
-    </div>,
-    document.body
-  );
+  return ref;
 }
 ```
 
 ---
 
-### 3.4 可拖拽对话框
+## 四、可拖拽
 
 ```tsx
-import React, { useState, useRef, useEffect } from 'react';
-
-function DraggableDialog({ open, onClose, title, children }: DialogProps) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!dialogRef.current) return;
-
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    });
-  };
+function DraggableDialog({ open, onClose, ...props }: DialogProps) {
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [start, setStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      setPosition({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
-      });
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
+    if (!dragging) return;
+    const move = (e: MouseEvent) => setPos({ x: e.clientX - start.x, y: e.clientY - start.y });
+    const up = () => setDragging(false);
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
     };
-  }, [isDragging, dragStart]);
+  }, [dragging, start]);
 
-  if (!open) return null;
-
-  return ReactDOM.createPortal(
-    <div className="dialog-overlay">
+  return (
+    <div 
+      className="dialog" 
+      style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}
+    >
       <div 
-        ref={dialogRef}
-        className="dialog draggable" 
-        style={{
-          transform: `translate(${position.x}px, ${position.y}px)`,
-          cursor: isDragging ? 'grabbing' : 'default',
+        onMouseDown={(e) => {
+          setDragging(true);
+          setStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
         }}
-        role="dialog" 
-        aria-modal="true"
+        style={{ cursor: dragging ? 'grabbing' : 'grab' }}
       >
-        <div 
-          className="dialog-header draggable-handle"
-          onMouseDown={handleMouseDown}
-          style={{ cursor: 'grab' }}
-        >
-          <h2 className="dialog-title">{title}</h2>
-          <button className="dialog-close" onClick={onClose}>✕</button>
-        </div>
-        <div className="dialog-content">{children}</div>
+        {/* header */}
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }
 ```
 
 ---
 
-### 3.5 多层对话框管理
+## 五、多层对话框
 
 ```tsx
-import React, { createContext, useContext, useState, useCallback } from 'react';
-
-interface DialogState {
-  id: string;
-  component: React.ReactNode;
-  zIndex: number;
-}
-
-interface DialogContextValue {
-  dialogs: DialogState[];
-  openDialog: (id: string, component: React.ReactNode) => void;
-  closeDialog: (id: string) => void;
-  closeAllDialogs: () => void;
-}
-
 const DialogContext = createContext<DialogContextValue | null>(null);
 
 export function DialogProvider({ children }: { children: React.ReactNode }) {
-  const [dialogs, setDialogs] = useState<DialogState[]>([]);
+  const [dialogs, setDialogs] = useState<Array<{ id: string; component: React.ReactNode; zIndex: number }>>([]);
   const baseZIndex = 1000;
 
-  const openDialog = useCallback((id: string, component: React.ReactNode) => {
-    setDialogs((prev) => [
-      ...prev,
-      {
-        id,
-        component,
-        zIndex: baseZIndex + prev.length,
-      },
-    ]);
-  }, []);
+  const openDialog = (id: string, component: React.ReactNode) => {
+    setDialogs((prev) => [...prev, { id, component, zIndex: baseZIndex + prev.length }]);
+  };
 
-  const closeDialog = useCallback((id: string) => {
-    setDialogs((prev) => prev.filter((dialog) => dialog.id !== id));
-  }, []);
-
-  const closeAllDialogs = useCallback(() => {
-    setDialogs([]);
-  }, []);
+  const closeDialog = (id: string) => {
+    setDialogs((prev) => prev.filter((d) => d.id !== id));
+  };
 
   return (
-    <DialogContext.Provider
-      value={{ dialogs, openDialog, closeDialog, closeAllDialogs }}
-    >
+    <DialogContext.Provider value={{ openDialog, closeDialog }}>
       {children}
-      {dialogs.map((dialog) => (
-        <div key={dialog.id} style={{ zIndex: dialog.zIndex }}>
-          {dialog.component}
+      {dialogs.map((d) => (
+        <div key={d.id} style={{ zIndex: d.zIndex }}>
+          {d.component}
         </div>
       ))}
     </DialogContext.Provider>
   );
 }
-
-export function useDialog() {
-  const context = useContext(DialogContext);
-  if (!context) {
-    throw new Error('useDialog must be used within DialogProvider');
-  }
-  return context;
-}
-
-// 使用示例
-function App() {
-  const { openDialog, closeDialog } = useDialog();
-
-  const handleOpenDialog = () => {
-    const dialogId = `dialog-${Date.now()}`;
-    openDialog(
-      dialogId,
-      <Dialog
-        open={true}
-        onClose={() => closeDialog(dialogId)}
-        title="Dialog"
-      >
-        <p>Content</p>
-      </Dialog>
-    );
-  };
-
-  return <button onClick={handleOpenDialog}>Open Dialog</button>;
-}
 ```
 
 ---
 
-## 四、原生 JavaScript 实现
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modal Dialog</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 40px;
-    }
-
-    /* 遮罩层 */
-    .dialog-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      pointer-events: none;
-    }
-
-    .dialog-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    /* 对话框 */
-    .dialog {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      max-width: 500px;
-      width: 100%;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      transform: scale(0.9);
-      opacity: 0;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .dialog-overlay.active .dialog {
-      transform: scale(1);
-      opacity: 1;
-    }
-
-    /* 头部 */
-    .dialog-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px 24px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    .dialog-title {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      color: #111827;
-    }
-
-    .dialog-close {
-      width: 32px;
-      height: 32px;
-      border: none;
-      background: transparent;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 20px;
-      color: #6b7280;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-
-    .dialog-close:hover {
-      background: #f3f4f6;
-      color: #111827;
-    }
-
-    /* 内容 */
-    .dialog-content {
-      padding: 24px;
+## 六、Native JavaScript
       overflow-y: auto;
       flex: 1;
     }
